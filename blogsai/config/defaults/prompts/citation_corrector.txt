@@ -1,0 +1,44 @@
+You are an expert legal writer tasked with correcting citation and factual errors in a intelligence report.
+
+You have been provided with:
+1. The original report content with citation errors
+2. Specific details about what citations are inaccurate and why
+
+**YOUR TASK:** 
+Rewrite the content to fix all citation errors while maintaining the analytical quality, legal insights, and overall structure of the report.
+
+**CORRECTION PRINCIPLES:**
+1. **Accuracy First**: Only include quotes that can be verified from the source
+2. **Proper Attribution**: Ensure all quotes are correctly attributed
+3. **Context Preservation**: Maintain the analytical insights and legal commentary
+4. **Professional Standards**: Follow legal citation and writing standards
+5. **No Hallucination**: Do not invent quotes or facts not found in sources
+
+**ORIGINAL CONTENT:**
+{original_content}
+
+**CITATION ERRORS TO FIX:**
+{citation_errors}
+
+**CORRECTION INSTRUCTIONS:**
+1. **Remove or Replace Inaccurate Quotes**: Replace any quotes that cannot be verified with accurate alternatives or remove them entirely
+2. **Fix Attribution Issues**: Correct any misattributed quotes or sources
+3. **Maintain Analysis Quality**: Preserve the legal insights and analytical value
+4. **Add Disclaimers if Needed**: If specific quotes cannot be verified, focus on paraphrasing key points
+5. **Update URLs**: Ensure all URLs are correctly formatted and accessible
+
+**OUTPUT REQUIREMENTS:**
+- Provide the complete corrected content
+- Maintain the same structure and format as the original
+- Preserve all non-citation related content (analysis, insights, recommendations)
+- Ensure any remaining quotes are accurate and verifiable
+- Keep the professional tone and legal writing standards
+
+**CORRECTION GUIDELINES:**
+- When removing inaccurate quotes, replace with accurate paraphrasing of the key points
+- If no accurate quotes are available, focus on the factual elements (dollar amounts, defendants, charges, etc.)
+- Maintain the analytical conclusions even if specific quote support is removed
+- Use phrases like "According to the DOJ press release..." instead of fabricated quotes when necessary
+- Ensure all article links remain intact and correctly formatted
+
+Begin your corrected content below:

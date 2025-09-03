@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pear body -->
+  <path d="M256 480C320 480 372 428 372 364C372 320 356 280 332 248C340 220 344 192 344 164C344 116 308 80 256 80C204 80 168 116 168 164C168 192 172 220 180 248C156 280 140 320 140 364C140 428 192 480 256 480Z" fill="#4A90E2" stroke="#2C3E50" stroke-width="4"/>
+  
+  <!-- Pear highlight -->
+  <ellipse cx="230" cy="200" rx="20" ry="35" fill="#6BB6FF" opacity="0.6"/>
+  
+  <!-- Stem -->
+  <rect x="248" y="60" width="16" height="30" rx="8" fill="#8B4513"/>
+  
+  <!-- Leaf -->
+  <ellipse cx="275" cy="75" rx="12" ry="8" fill="#228B22" transform="rotate(30 275 75)"/>
+</svg>

@@ -1,0 +1,40 @@
+# Default BlogsAI Data Sources
+# This file contains the default data source configurations that ship with BlogsAI
+# User-specific source configurations will be created in the platform-appropriate config directory
+
+sources:
+  agencies:
+    doj:
+      name: "Department of Justice"
+      base_url: "https://www.justice.gov"
+      scraper_type: "government"
+      enabled: true
+      press_releases_url: "https://www.justice.gov/news"
+    
+    sec:
+      name: "Securities and Exchange Commission"
+      base_url: "https://www.sec.gov"
+      scraper_type: "government"
+      enabled: true
+      press_releases_url: "https://www.sec.gov/news/pressreleases"
+    
+    cftc:
+      name: "Commodity Futures Trading Commission"
+      base_url: "https://www.cftc.gov"
+      scraper_type: "government"
+      enabled: true
+      press_releases_url: "https://www.cftc.gov/PressRoom/PressReleases"
+    
+    ftc:
+      name: "Federal Trade Commission"
+      base_url: "https://www.ftc.gov"
+      scraper_type: "government"
+      enabled: false
+      press_releases_url: "https://www.ftc.gov/news-events/news/press-releases"
+    
+    finra:
+      name: "Financial Industry Regulatory Authority"
+      base_url: "https://www.finra.org"
+      scraper_type: "government"
+      enabled: false
+      press_releases_url: "https://www.finra.org/media-center/news-releases"

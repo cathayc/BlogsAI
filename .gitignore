@@ -1,0 +1,8 @@
+.DS_Store
+.env
+.cursor
+__pycache__/
+*.pyc
+data/
+dist/
+build/

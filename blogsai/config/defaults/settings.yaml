@@ -1,0 +1,33 @@
+# Default BlogsAI Settings
+# This file contains the default configuration that ships with BlogsAI
+# User-specific settings will be created in the platform-appropriate config directory
+
+database:
+  url: "sqlite:///data/blogsai.db"  # Will be updated by distribution manager
+  echo: false
+
+openai:
+  model: "gpt-4o"
+  research_model: "gpt-4o"
+  max_tokens: 4000
+  temperature: 0.3
+
+reporting:
+  output_dir: "data/reports"  # Will be updated by distribution manager
+  formats: ["html", "json", "markdown"]
+  include_source_links: true
+
+scheduling:
+  daily_time: "09:00"
+  timezone: "UTC"
+
+analysis:
+  max_articles_per_report: 50
+  lookback_days:
+    daily: 1
+
+scraping:
+  delay_between_requests: 1
+  max_retries: 3
+  timeout: 30
+  user_agent: "BlogsAI/1.0"
