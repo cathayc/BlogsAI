@@ -35,6 +35,10 @@ excludes = [
     'audioop', 'wave', 'chunk', 'sunau', 'aifc',
     # Large scientific libraries (if not used)
     'numpy', 'scipy', 'matplotlib', 'pandas',
+    # Removed unused dependencies
+    'feedparser', 'schedule', 'sgmllib3k',
+    # Alternative build tools (not needed at runtime)
+    'cx_Freeze', 'nuitka', 'dmgbuild', 'ds_store', 'mac_alias',
     # Additional unused modules
     'antigravity', 'this', '__hello__', '__phello__',
     'idlelib', 'lib2to3', 'turtledemo',
@@ -87,6 +91,7 @@ a = Analysis(
         'blogsai.utils.logging_config',
         'blogsai.utils.error_handling',     # NEW: Error handling utilities
         'blogsai.utils.database_helpers',   # NEW: Database helpers
+        'blogsai.utils.timezone_utils',     # NEW: Timezone utilities
         
         # External dependencies
         'sqlite3',
@@ -95,6 +100,8 @@ a = Analysis(
         'openai',
         'pydantic',
         'yaml',
+        'pytz',  # Timezone handling
+        'dotenv',  # Environment variables
         
         # Secure storage dependencies
         'keyring',
@@ -124,6 +131,24 @@ a = Analysis(
         'base64',
         'hashlib',
         'getpass',
+        
+        # Web scraping dependencies
+        'selenium',
+        'selenium.webdriver',
+        'selenium.webdriver.chrome.options',
+        'selenium.webdriver.chrome.service',
+        'selenium.webdriver.common.by',
+        'selenium.webdriver.support.ui',
+        'selenium.webdriver.support.expected_conditions',
+        'selenium.common.exceptions',
+        'webdriver_manager',
+        'webdriver_manager.chrome',
+        
+        # Report generation dependencies
+        'jinja2',
+        'reportlab',
+        'reportlab.lib',
+        'reportlab.platypus',
         
         # Markdown extensions for HTML report generation
         'markdown.extensions',

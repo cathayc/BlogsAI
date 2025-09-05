@@ -50,6 +50,10 @@ excludes = [
     'audioop', 'wave', 'chunk', 'sunau', 'aifc',
     # Large scientific libraries (if not used)
     'numpy', 'scipy', 'matplotlib', 'pandas',
+    # Removed unused dependencies
+    'feedparser', 'schedule', 'sgmllib3k',
+    # Alternative build tools (not needed at runtime)
+    'cx_Freeze', 'nuitka', 'dmgbuild', 'ds_store', 'mac_alias',
     # Additional unused modules
     'antigravity', 'this', '__hello__', '__phello__',
     'idlelib', 'lib2to3', 'turtledemo',
@@ -102,6 +106,7 @@ a = Analysis(
         'blogsai.utils.logging_config',
         'blogsai.utils.error_handling',     # NEW: Error handling utilities
         'blogsai.utils.database_helpers',   # NEW: Database helpers
+        'blogsai.utils.timezone_utils',     # NEW: Timezone utilities
         
         # External dependencies
         'sqlite3',
@@ -110,6 +115,8 @@ a = Analysis(
         'openai',
         'pydantic',
         'yaml',
+        'pytz',  # Timezone handling
+        'dotenv',  # Environment variables
         
         # Secure storage dependencies
         'keyring',
@@ -139,6 +146,24 @@ a = Analysis(
         'base64',
         'hashlib',
         'getpass',
+        
+        # Web scraping dependencies
+        'selenium',
+        'selenium.webdriver',
+        'selenium.webdriver.chrome.options',
+        'selenium.webdriver.chrome.service',
+        'selenium.webdriver.common.by',
+        'selenium.webdriver.support.ui',
+        'selenium.webdriver.support.expected_conditions',
+        'selenium.common.exceptions',
+        'webdriver_manager',
+        'webdriver_manager.chrome',
+        
+        # Report generation dependencies
+        'jinja2',
+        'reportlab',
+        'reportlab.lib',
+        'reportlab.platypus',
         
         # Markdown extensions for HTML report generation
         'markdown.extensions',
@@ -348,67 +373,23 @@ def create_macos_distribution():
     
     print("Creating macOS distribution package...")
     
-    # Create portable version
-    portable_dir = Path('dist/BlogsAI-Portable')
-    if portable_dir.exists():
-        shutil.rmtree(portable_dir)
-    
-    portable_dir.mkdir()
-    shutil.copytree('dist/BlogsAI.app', portable_dir / 'BlogsAI.app')
-    
-    # Create portable marker
-    (portable_dir / 'PORTABLE').touch()
-    
-    # Create README
-    readme_content = """# BlogsAI Portable
-
-This is the portable version of BlogsAI. All data will be stored in this folder.
-
-## Usage
-1. Double-click BlogsAI.app to run
-2. All data will be stored in the 'data' folder that gets created
-3. You can move this entire folder to any location
-
-## Features
-- No installation required
-- All data contained in this folder
-- Perfect for USB drives or shared computers
-- Secure credential storage with encryption
-"""
-    (portable_dir / 'README.txt').write_text(readme_content)
-    
     os.chdir('dist')
     
-    # Create regular ZIP
-    result1 = subprocess.run([
+    # Create ZIP package
+    result = subprocess.run([
         'zip', '-r', 'BlogsAI-macOS.zip', 'BlogsAI.app'
-    ], capture_output=True, text=True)
-    
-    # Create portable ZIP
-    result2 = subprocess.run([
-        'zip', '-r', 'BlogsAI-macOS-Portable.zip', 'BlogsAI-Portable'
     ], capture_output=True, text=True)
     
     os.chdir('..')
     
-    success = True
-    if result1.returncode == 0:
+    if result.returncode == 0:
         zip_path = Path('dist/BlogsAI-macOS.zip')
         size_mb = zip_path.stat().st_size / (1024 * 1024)
         print(f"macOS distribution created: {zip_path} ({size_mb:.1f}MB)")
+        return True
     else:
-        print(f"Failed to create macOS ZIP: {result1.stderr}")
-        success = False
-    
-    if result2.returncode == 0:
-        zip_path = Path('dist/BlogsAI-macOS-Portable.zip')
-        size_mb = zip_path.stat().st_size / (1024 * 1024)
-        print(f"macOS portable distribution created: {zip_path} ({size_mb:.1f}MB)")
-    else:
-        print(f"Failed to create macOS portable ZIP: {result2.stderr}")
-        success = False
-    
-    return success
+        print(f"Failed to create macOS ZIP: {result.stderr}")
+        return False
 
 def create_windows_distribution():
     """Create Windows distribution package."""
@@ -416,76 +397,25 @@ def create_windows_distribution():
         print("No Windows executable found to package")
         return False
     
-    print("Creating Windows distribution packages...")
-    
-    # Create portable version
-    portable_dir = Path('dist/BlogsAI-Portable')
-    if portable_dir.exists():
-        shutil.rmtree(portable_dir)
-    
-    shutil.copytree('dist/BlogsAI', portable_dir)
-    
-    # Create portable marker
-    (portable_dir / 'PORTABLE').touch()
-    
-    # Create batch file for easy launching
-    batch_content = """@echo off
-cd /d "%~dp0"
-BlogsAI.exe
-pause
-"""
-    (portable_dir / 'Run BlogsAI.bat').write_text(batch_content)
-    
-    # Create README
-    readme_content = """# BlogsAI Portable for Windows
-
-This is the portable version of BlogsAI. All data will be stored in this folder.
-
-## Usage
-1. Double-click "Run BlogsAI.bat" or "BlogsAI.exe" to run
-2. All data will be stored in the 'data' folder that gets created
-3. You can move this entire folder to any location
-
-## Features
-- No installation required
-- All data contained in this folder
-- Perfect for USB drives or shared computers
-- Secure credential storage with Windows Credential Manager
-"""
-    (portable_dir / 'README.txt').write_text(readme_content)
+    print("Creating Windows distribution package...")
     
     os.chdir('dist')
     
-    # Create regular ZIP
-    result1 = subprocess.run([
+    # Create ZIP package
+    result = subprocess.run([
         'powershell', 'Compress-Archive', '-Path', 'BlogsAI', '-DestinationPath', 'BlogsAI-Windows.zip', '-Force'
-    ], capture_output=True, text=True)
-    
-    # Create portable ZIP
-    result2 = subprocess.run([
-        'powershell', 'Compress-Archive', '-Path', 'BlogsAI-Portable', '-DestinationPath', 'BlogsAI-Windows-Portable.zip', '-Force'
     ], capture_output=True, text=True)
     
     os.chdir('..')
     
-    success = True
-    if result1.returncode == 0:
+    if result.returncode == 0:
         zip_path = Path('dist/BlogsAI-Windows.zip')
         size_mb = zip_path.stat().st_size / (1024 * 1024)
         print(f"Windows distribution created: {zip_path} ({size_mb:.1f}MB)")
+        return True
     else:
-        print(f"Failed to create Windows ZIP: {result1.stderr}")
-        success = False
-    
-    if result2.returncode == 0:
-        zip_path = Path('dist/BlogsAI-Windows-Portable.zip')
-        size_mb = zip_path.stat().st_size / (1024 * 1024)
-        print(f"Windows portable distribution created: {zip_path} ({size_mb:.1f}MB)")
-    else:
-        print(f"Failed to create Windows portable ZIP: {result2.stderr}")
-        success = False
-    
-    return success
+        print(f"Failed to create Windows ZIP: {result.stderr}")
+        return False
 
 def create_linux_distribution():
     """Create Linux distribution package."""
@@ -493,82 +423,25 @@ def create_linux_distribution():
         print("No Linux executable found to package")
         return False
     
-    print("Creating Linux distribution packages...")
-    
-    # Create portable version
-    portable_dir = Path('dist/BlogsAI-Portable')
-    if portable_dir.exists():
-        shutil.rmtree(portable_dir)
-    
-    shutil.copytree('dist/BlogsAI', portable_dir)
-    
-    # Create portable marker
-    (portable_dir / 'PORTABLE').touch()
-    
-    # Create shell script for easy launching
-    script_content = """#!/bin/bash
-cd "$(dirname "$0")"
-./BlogsAI
-"""
-    script_path = portable_dir / 'run-blogsai.sh'
-    script_path.write_text(script_content)
-    script_path.chmod(0o755)
-    
-    # Create README
-    readme_content = """# BlogsAI Portable for Linux
-
-This is the portable version of BlogsAI. All data will be stored in this folder.
-
-## Usage
-1. Run "./run-blogsai.sh" or "./BlogsAI" to start the application
-2. All data will be stored in the 'data' folder that gets created
-3. You can move this entire folder to any location
-
-## Features
-- No installation required
-- All data contained in this folder
-- Perfect for shared systems or removable media
-- Secure credential storage with system keyring integration
-
-## Requirements
-- Linux x86_64
-- Qt5 libraries (usually pre-installed)
-- Optional: keyring libraries for secure credential storage
-"""
-    (portable_dir / 'README.txt').write_text(readme_content)
+    print("Creating Linux distribution package...")
     
     os.chdir('dist')
     
-    # Create regular tar.gz
-    result1 = subprocess.run([
+    # Create tar.gz package
+    result = subprocess.run([
         'tar', '-czf', 'BlogsAI-Linux.tar.gz', 'BlogsAI'
-    ], capture_output=True, text=True)
-    
-    # Create portable tar.gz
-    result2 = subprocess.run([
-        'tar', '-czf', 'BlogsAI-Linux-Portable.tar.gz', 'BlogsAI-Portable'
     ], capture_output=True, text=True)
     
     os.chdir('..')
     
-    success = True
-    if result1.returncode == 0:
+    if result.returncode == 0:
         tar_path = Path('dist/BlogsAI-Linux.tar.gz')
         size_mb = tar_path.stat().st_size / (1024 * 1024)
         print(f"Linux distribution created: {tar_path} ({size_mb:.1f}MB)")
+        return True
     else:
-        print(f"Failed to create Linux tar.gz: {result1.stderr}")
-        success = False
-    
-    if result2.returncode == 0:
-        tar_path = Path('dist/BlogsAI-Linux-Portable.tar.gz')
-        size_mb = tar_path.stat().st_size / (1024 * 1024)
-        print(f"Linux portable distribution created: {tar_path} ({size_mb:.1f}MB)")
-    else:
-        print(f"Failed to create Linux portable tar.gz: {result2.stderr}")
-        success = False
-    
-    return success
+        print(f"Failed to create Linux tar.gz: {result.stderr}")
+        return False
 
 def clean_production_config():
     """Clean production config and credentials for first-time setup testing."""
@@ -637,10 +510,8 @@ def main():
     print("\n" + "="*50)
     print("BUILD COMPLETE!")
     print("="*50)
-    print("Distribution packages created in 'dist/' directory:")
-    print("- Regular version: For standard installation")
-    print("- Portable version: Self-contained, no installation needed")
-    print("\nBoth versions include:")
+    print("Distribution package created in 'dist/' directory")
+    print("\nThe application includes:")
     print("- Platform-specific data directories")
     print("- Secure credential storage")
     print("- Automatic configuration setup")

@@ -1,0 +1,83 @@
+name: Build BlogsAI for Windows
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+    
+    - name: Load cached dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-windows-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+    
+    - name: Install dependencies
+      run: |
+        poetry install --no-interaction --no-root
+        poetry install --no-interaction
+    
+    - name: Build Windows executable
+      run: |
+        poetry run python build.py
+    
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: BlogsAI-Windows
+        path: |
+          dist/BlogsAI-Windows.zip
+        retention-days: 30
+        if-no-files-found: error
+    
+    - name: Create Release (on main branch)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: windows-v${{ github.run_number }}
+        name: BlogsAI Windows Build v${{ github.run_number }}
+        body: |
+          ## BlogsAI Windows Desktop Application
+          
+          Automated Windows build from commit ${{ github.sha }}
+          
+          ### Download
+          - **BlogsAI-Windows.zip** - Extract and run BlogsAI.exe
+          
+          ### Installation
+          1. Download BlogsAI-Windows.zip
+          2. Extract the archive to your desired location
+          3. Run BlogsAI.exe
+          
+          ### System Requirements
+          - Windows 10 or later
+          - No additional installation required
+          
+          ### First Run
+          - The app will prompt for OpenAI API key setup
+          - All data is stored in Windows user directories
+        files: |
+          dist/BlogsAI-Windows.zip
+        draft: false
+        prerelease: false

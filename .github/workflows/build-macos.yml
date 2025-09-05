@@ -1,0 +1,89 @@
+name: Build BlogsAI for macOS
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+    
+    - name: Load cached dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-macos-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+    
+    - name: Install dependencies
+      run: |
+        poetry install --no-interaction --no-root
+        poetry install --no-interaction
+    
+    - name: Build macOS executable
+      run: |
+        poetry run python build.py
+    
+    - name: Upload macOS artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: BlogsAI-macOS
+        path: |
+          dist/BlogsAI-macOS.zip
+        retention-days: 30
+        if-no-files-found: error
+    
+    - name: Create Release (on main branch)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: macos-v${{ github.run_number }}
+        name: BlogsAI macOS Build v${{ github.run_number }}
+        body: |
+          ## BlogsAI macOS Desktop Application
+          
+          Automated macOS build from commit ${{ github.sha }}
+          
+          ### Download
+          - **BlogsAI-macOS.zip** - Extract and run BlogsAI.app
+          
+          ### Installation
+          1. Download BlogsAI-macOS.zip
+          2. Extract the archive
+          3. Drag BlogsAI.app to your Applications folder (optional)
+          4. Double-click BlogsAI.app to run
+          
+          ### System Requirements
+          - macOS 10.15 (Catalina) or later
+          - No additional installation required
+          
+          ### First Run
+          - macOS may show security warning - click "Open" to allow
+          - The app will prompt for OpenAI API key setup
+          - All data is stored in macOS user directories
+          
+          ### Troubleshooting
+          - If macOS blocks the app: System Preferences → Security & Privacy → Allow "BlogsAI"
+          - For "damaged" warnings: Run `xattr -cr /path/to/BlogsAI.app` in Terminal
+        files: |
+          dist/BlogsAI-macOS.zip
+        draft: false
+        prerelease: false
