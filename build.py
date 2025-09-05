@@ -125,7 +125,9 @@ a = Analysis(
         # Data processing
         'blogsai.scrapers.manager',
         'blogsai.scrapers.base',
-        'blogsai.scrapers.government',
+        'blogsai.scrapers.doj_scraper',
+        'blogsai.scrapers.sec_scraper',
+        'blogsai.scrapers.cftc_scraper',
         'blogsai.scrapers.url_scraper',
         'blogsai.analysis.analyzer',
         'blogsai.analysis.openai_client',

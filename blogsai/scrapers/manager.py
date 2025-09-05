@@ -32,7 +32,9 @@ from sqlalchemy.exc import IntegrityError
 
 from ..core import get_db, config
 from ..database.models import Source, Article, ScrapingLog
-from .government import DOJScraper, SECScraper, CFTCScraper
+from .doj_scraper import DOJScraper
+from .sec_scraper import SECScraper
+from .cftc_scraper import CFTCScraper
 
 
 class ScraperManager:
