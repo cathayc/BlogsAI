@@ -198,7 +198,7 @@ class DistributionManager:
         try:
             self._directories = create_secure_directories(
                 app_name="BlogsAI",
-                app_author="BlogsAI",
+                app_author=None,  # Use None to avoid duplicate folder structure
                 portable_mode=self.is_portable,
                 development_mode=self.is_development,
             )

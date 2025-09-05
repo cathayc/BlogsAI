@@ -13,7 +13,7 @@ class AppDirectories:
     """Manages platform-specific application directories."""
 
     APP_NAME = "BlogsAI"
-    APP_AUTHOR = "BlogsAI"
+    APP_AUTHOR = None  # Use None to avoid duplicate folder structure
 
     def __init__(self):
         self._app_data_dir = None
