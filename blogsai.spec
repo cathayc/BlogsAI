@@ -32,13 +32,23 @@ if BuildPath('blogsai/config/defaults').exists():
     # Include all prompt files individually to ensure they get bundled properly
     if BuildPath('blogsai/config/defaults/prompts').exists():
         prompts_dir = BuildPath('blogsai/config/defaults/prompts')
-        for prompt_file in prompts_dir.glob('*.txt'):
+        prompt_files = list(prompts_dir.glob('*.txt'))
+        print(f"PyInstaller: Found {len(prompt_files)} prompt files in {prompts_dir}")
+        for prompt_file in prompt_files:
+            print(f"PyInstaller: Adding prompt file: {prompt_file} -> _internal/defaults/prompts/{prompt_file.name}")
             data_dirs.append((str(prompt_file), f'_internal/defaults/prompts/{prompt_file.name}'))
+    else:
+        print(f"PyInstaller: WARNING - Prompts directory not found: blogsai/config/defaults/prompts")
 
 # DO NOT include runtime data:
 # - No database files (*.db)
 # - No logs directory  
 # - No reports directory
+
+# Debug: Print all data files being included
+print(f"PyInstaller: Total data files to include: {len(data_dirs)}")
+for src, dest in data_dirs:
+    print(f"PyInstaller: {src} -> {dest}")
 # - No user data
 # App should create these in proper OS app data directories
 
