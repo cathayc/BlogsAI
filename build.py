@@ -30,13 +30,13 @@ def clean_build():
             shutil.rmtree(dir_name)
             print(f"Cleaned {dir_name} directory")
 
-def build_app():
+def build_app(spec_file='blogsai.spec'):
     """Build the application using PyInstaller."""
     try:
-        print("Running PyInstaller...")
+        print(f"Running PyInstaller with {spec_file}...")
         result = subprocess.run([
             sys.executable, '-m', 'PyInstaller',
-            'blogsai.spec',
+            spec_file,
             '--clean',
             '--noconfirm'
         ], check=True, capture_output=True, text=True)
@@ -150,16 +150,25 @@ def main():
     # Step 3: Clean production config (force first-time setup)
     clean_production_config()
     
-    # Step 4: Verify spec file exists
-    if not Path('blogsai.spec').exists():
-        print("ERROR: blogsai.spec file not found!")
-        print("The spec file should be committed to the repository.")
+    # Step 4: Select platform-specific spec file
+    current_platform = platform.system().lower()
+    if current_platform == 'windows':
+        spec_file = 'blogsai-windows.spec'
+    elif current_platform == 'darwin':
+        spec_file = 'blogsai-macos.spec'
+    else:
+        # Linux or other - use the original spec file
+        spec_file = 'blogsai.spec'
+    
+    if not Path(spec_file).exists():
+        print(f"ERROR: {spec_file} file not found!")
+        print("The platform-specific spec file should be committed to the repository.")
         sys.exit(1)
     
-    print("Using static PyInstaller spec file: blogsai.spec")
+    print(f"Using platform-specific PyInstaller spec file: {spec_file}")
     
     # Step 5: Build application
-    if not build_app():
+    if not build_app(spec_file):
         sys.exit(1)
     
     # Step 6: Create distribution
