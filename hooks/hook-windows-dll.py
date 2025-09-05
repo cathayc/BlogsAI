@@ -1,44 +1,45 @@
 """
 PyInstaller hook for Windows DLL handling.
-Helps resolve "failed to load python dll" issues on Windows.
+Fixes ABI/FFI mismatch issues that cause "invalid access to memory location" errors.
 """
 
-from PyInstaller.utils.hooks import collect_all, collect_dynamic_libs
+from PyInstaller.utils.hooks import collect_all, collect_dynamic_libs, is_module_satisfies
 import os
 import sys
+import platform
 
-# Collect all encodings to prevent import errors
-datas, binaries, hiddenimports = collect_all('encodings')
-
-# Add Windows-specific runtime libraries
-if sys.platform.startswith('win'):
-    # Include Windows runtime DLLs
-    binaries.extend(collect_dynamic_libs('_ctypes'))
-    binaries.extend(collect_dynamic_libs('_socket'))
-    binaries.extend(collect_dynamic_libs('_ssl'))
-    binaries.extend(collect_dynamic_libs('_hashlib'))
+# Only apply on Windows
+if not sys.platform.startswith('win'):
+    datas = []
+    binaries = []
+    hiddenimports = []
+else:
+    # Collect minimal encodings to prevent import errors
+    datas, binaries, hiddenimports = collect_all('encodings')
     
-    # Add essential Windows modules
-    hiddenimports.extend([
-        '_ctypes',
-        'ctypes',
-        'ctypes.wintypes',
-        'ctypes.util',
-        'msvcrt',
-        'winreg',
-        '_winapi',
-        'nt',
-        '_overlapped',
-        '_multiprocessing',
-    ])
+    # CRITICAL: Ensure consistent bitness (32-bit vs 64-bit)
+    is_64bit = platform.machine().endswith('64') or platform.architecture()[0] == '64bit'
     
-    # Include Visual C++ runtime libraries if available
-    try:
-        import _ctypes
-        ctypes_path = os.path.dirname(_ctypes.__file__)
-        for dll_name in ['msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll']:
-            dll_path = os.path.join(ctypes_path, dll_name)
-            if os.path.exists(dll_path):
-                binaries.append((dll_path, '.'))
-    except (ImportError, AttributeError):
-        pass
+    print(f"Windows hook: Detected {'64-bit' if is_64bit else '32-bit'} architecture")
+    
+    # Only include absolutely essential Windows modules to avoid ABI conflicts
+    essential_hiddenimports = [
+        'msvcrt',      # Microsoft Visual C Runtime - essential
+        'winreg',      # Windows registry access
+        '_winapi',     # Windows API bindings
+        'nt',          # NT kernel interface
+    ]
+    
+    # Add essential modules but avoid problematic ones
+    hiddenimports.extend(essential_hiddenimports)
+    
+    # AVOID these modules that commonly cause ABI issues:
+    # - _ctypes (can have calling convention mismatches)
+    # - _socket (can have struct layout issues)  
+    # - _ssl (OpenSSL ABI sensitivity)
+    # - _hashlib (crypto library ABI issues)
+    
+    print(f"Windows hook: Added {len(essential_hiddenimports)} essential Windows modules")
+    
+    # Don't try to manually include Visual C++ runtime DLLs
+    # Let PyInstaller handle them automatically to avoid version mismatches

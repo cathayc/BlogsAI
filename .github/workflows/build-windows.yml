@@ -33,12 +33,17 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests beautifulsoup4 openai sqlalchemy pydantic pyyaml click jinja2 python-dateutil selenium python-dotenv markdown webdriver-manager reportlab keyring platformdirs pytz
-        pip install pyinstaller
-        # Install PyQt5 with specific Windows handling
+        # Install PyInstaller first to ensure proper version
+        pip install pyinstaller==6.3.0
+        # Install PyQt5 with specific Windows handling (64-bit versions)
         pip install PyQt5==5.15.10 PyQt5-Qt5==5.15.2 PyQt5-sip==12.13.0
+        # Install other dependencies
+        pip install requests beautifulsoup4 openai sqlalchemy pydantic pyyaml click jinja2 python-dateutil selenium python-dotenv markdown webdriver-manager reportlab keyring platformdirs pytz
         # Install the current package in editable mode to fix import paths
         pip install -e .
+        # Verify architecture consistency
+        python -c "import platform; print(f'Python architecture: {platform.architecture()}')"
+        python -c "import platform; print(f'Machine type: {platform.machine()}')"
     
     - name: Verify build environment
       run: |

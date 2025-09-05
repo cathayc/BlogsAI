@@ -37,7 +37,7 @@ def create_spec_file():
     import platform
     is_windows = platform.system().lower() == 'windows'
     
-    spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
+    spec_content = '''# -*- mode: python ; coding: utf-8 -*-
 
 import sys
 from pathlib import Path
@@ -48,7 +48,7 @@ project_root = Path.cwd()
 block_cipher = None
 
 # Windows-specific configuration
-IS_WINDOWS = {is_windows}'''
+IS_WINDOWS = ''' + str(is_windows) + '''
 
 # Include bundled resources (templates, defaults) - NO runtime data
 data_dirs = []
@@ -70,7 +70,7 @@ if BuildPath('blogsai/config/defaults').exists():
 # App should create these in proper OS app data directories
 
 # Exclude unused Python stdlib modules to reduce bundle size
-# Ultra-conservative - only exclude the safest modules
+# Include modules that commonly cause Windows ABI/FFI issues
 excludes = [
     # Unused GUI frameworks
     'tkinter', 'turtle', 'curses',
@@ -89,6 +89,11 @@ excludes = [
     # Additional unused modules
     'antigravity', 'this', '__hello__', '__phello__',
     'idlelib', 'lib2to3', 'turtledemo',
+    # WINDOWS ABI FIX: Exclude modules that commonly cause DLL/FFI issues
+    # Let PyInstaller handle these automatically to avoid version conflicts
+    '_decimal',     # Can have ABI issues with different builds
+    '_multiprocessing',  # Complex FFI that can cause issues
+    'multiprocessing.dummy',  # Threading conflicts
 ]
 
 a = Analysis(
@@ -213,38 +218,26 @@ a = Analysis(
         'markdown.extensions.codehilite',
         'markdown.extensions.extra',
         
-        # Windows-specific DLL and runtime imports
-        'encodings',
+        # Windows-specific DLL and runtime imports - MINIMAL SET
+        # Only include absolutely essential modules to avoid ABI conflicts
         'encodings.utf_8',
+        'encodings.ascii', 
         'encodings.cp1252',
-        'encodings.ascii',
-        '_ctypes',
-        'ctypes',
-        'ctypes.wintypes',
-        'ctypes.util',
-        '_socket',
-        '_ssl',
-        '_hashlib',
-        '_sqlite3',
-        '_decimal',
-        '_datetime',
-        '_json',
-        '_pickle',
-        '_random',
-        '_struct',
-        '_csv',
         'msvcrt',
         'winreg',
-        'winsound',
+        '_winapi',
+        'nt',
     ],
     hookspath=['hooks'],
-    hooksconfig={},
-    runtime_hooks=['hooks/runtime_distribution.py'],
+    hooksconfig={{}},
+    runtime_hooks=['hooks/runtime_distribution.py', 'hooks/runtime_windows_dll.py'],
     excludes=excludes,
     win_no_prefer_redirects=True,   # WINDOWS FIX: Helps with DLL loading
-    win_private_assemblies=True,    # WINDOWS FIX: Include private assemblies
+    win_private_assemblies=True,    # WINDOWS FIX: Include private assemblies  
     cipher=block_cipher,
     noarchive=False,
+    # Additional Windows ABI/FFI fixes
+    optimize=0,                     # Don't optimize bytecode - can cause issues
 )
 
 # Remove unnecessary Qt translations (keep English only)
@@ -348,7 +341,7 @@ if IS_WINDOWS:
         console=False,
         disable_windowed_traceback=False,
         argv_emulation=False,
-        target_arch=None,
+        target_arch='x86_64',  # EXPLICIT 64-bit targeting to avoid ABI issues
         codesign_identity=None,
         entitlements_file=None,
         icon='assets/icon.ico' if Path('assets/icon.ico').exists() else None,
