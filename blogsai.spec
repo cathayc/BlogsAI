@@ -194,8 +194,6 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=['hooks/runtime_distribution.py', 'hooks/runtime_windows_dll.py'],
     excludes=excludes,
-    win_no_prefer_redirects=True,   # WINDOWS FIX: Helps with DLL loading
-    win_private_assemblies=True,    # WINDOWS FIX: Include private assemblies  
     cipher=block_cipher,
     noarchive=False,
     # Additional Windows ABI/FFI fixes
