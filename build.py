@@ -221,7 +221,7 @@ a = Analysis(
         'nt',
     ],
     hookspath=['hooks'],
-    hooksconfig={{}},
+    hooksconfig={},
     runtime_hooks=['hooks/runtime_distribution.py', 'hooks/runtime_windows_dll.py'],
     excludes=excludes,
     win_no_prefer_redirects=True,   # WINDOWS FIX: Helps with DLL loading
@@ -378,7 +378,7 @@ if not IS_WINDOWS and sys.platform == 'darwin':
         name='BlogsAI.app',
         icon='assets/icon.icns',
         bundle_identifier='com.blogsai.app',
-        info_plist={{
+        info_plist={
             'CFBundleName': 'BlogsAI',
             'CFBundleDisplayName': 'BlogsAI',
             'CFBundleVersion': '1.0.0',
