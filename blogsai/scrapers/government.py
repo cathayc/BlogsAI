@@ -104,21 +104,18 @@ class DOJScraper(BaseScraper):
                     logger.debug(
                         f"Creating ChromeDriver instance for {self.source_config.name}"
                     )
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
-            self.driver.implicitly_wait(10)
+                    self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                    self.driver.implicitly_wait(10)
                     logger.info(
                         f"ChromeDriver initialized successfully for {self.source_config.name}"
                     )
-            logger.debug(f"ChromeDriver session ID: {self.driver.session_id}")
-            
-            # Use weakref.finalize for more reliable cleanup
-            self._finalizer = weakref.finalize(self, self._cleanup_driver, self.driver)
-            
-        except Exception as e:
-                    logger.error(
-                        f"Failed to create Chrome webdriver for {self.source_config.name}: {e}"
-                    )
-            self.driver = None
+                    logger.debug(f"ChromeDriver session ID: {self.driver.session_id}")
+                    
+                    # Use weakref.finalize for more reliable cleanup
+                    self._finalizer = weakref.finalize(self, self._cleanup_driver, self.driver)
+                except Exception as e:
+                    logger.error(f"Failed to create Chrome webdriver for {self.source_config.name}: {e}")
+                    self.driver = None
             else:
                 logger.error(
                     f"Could not initialize ChromeDriverManager for {self.source_config.name}: {driver_error}"
@@ -650,12 +647,12 @@ class SECScraper(BaseScraper):
         super().__init__(source_config, scraping_config)
         
         # Set up headless Chrome WebDriver
-            chrome_options = Options()
-            chrome_options.add_argument("--headless")
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument(
             "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
@@ -877,7 +874,7 @@ class SECScraper(BaseScraper):
 
                 if not press_release_rows:
                     logger.info(f"No press release rows found on page {page + 1}")
-                        break
+                    break
 
                 page_articles = []
                 for row in press_release_rows:
@@ -887,9 +884,9 @@ class SECScraper(BaseScraper):
                         )
                         if article:
                             page_articles.append(article)
-                except Exception as e:
+                    except Exception as e:
                         logger.debug(f"Error processing press release row: {e}")
-                    continue
+                        continue
             
                 articles.extend(page_articles)
                 logger.info(
