@@ -16,7 +16,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 
 from .base import BaseScraper
-from ._common import setup_chrome_options, log_safe_content
+from ._common import setup_chrome_options, log_safe_content, initialize_chrome_driver
 
 logger = logging.getLogger(__name__)
 
@@ -27,40 +27,15 @@ class CFTCScraper(BaseScraper):
     def __init__(self, source_config, scraping_config):
         super().__init__(source_config, scraping_config)
 
-        # Set up headless Chrome WebDriver with proper binary path
-        chrome_options = setup_chrome_options()
-
-        # Initialize WebDriver with automatic driver management
-        self.driver = None
-
-        try:
-            # Use stable ChromeDriver version to avoid macOS security issues
-            service = Service(
-                ChromeDriverManager(driver_version="138.0.7204.183").install()
-            )
-        except Exception:
-            # Fallback to latest version if specific version fails
-            service = Service(ChromeDriverManager().install())
-
-        try:
-            logger.debug(
-                f"Creating ChromeDriver instance for {self.source_config.name}"
-            )
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Initialize ChromeDriver using the common helper function
+        self.driver = initialize_chrome_driver(self.source_config.name)
+        
+        if self.driver:
             self.driver.implicitly_wait(10)
-            logger.info(
-                f"ChromeDriver initialized successfully for {self.source_config.name}"
-            )
             logger.debug(f"ChromeDriver session ID: {self.driver.session_id}")
-
+            
             # Use weakref.finalize for more reliable cleanup
             self._finalizer = weakref.finalize(self, self._cleanup_driver, self.driver)
-            
-        except Exception as e:
-            logger.error(
-                f"Failed to initialize ChromeDriver for {self.source_config.name}: {e}"
-            )
-            self.driver = None
 
     @staticmethod
     def _cleanup_driver(driver):

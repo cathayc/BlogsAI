@@ -46,15 +46,9 @@ def setup_chrome_options():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
     chrome_options.add_argument("--disable-extensions")
-    chrome_options.add_argument("--disable-plugins")
     chrome_options.add_argument("--disable-images")
     chrome_options.add_argument("--disable-notifications")
-    chrome_options.add_argument("--disable-web-security")
-    chrome_options.add_argument("--allow-running-insecure-content")
-    chrome_options.add_argument("--disable-features=VizDisplayCompositor")
-    chrome_options.add_argument("--disable-background-timer-throttling")
-    chrome_options.add_argument("--disable-renderer-backgrounding")
-    chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+    chrome_options.add_argument("--remote-debugging-port=9222")
     chrome_options.add_argument(
         "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
@@ -83,40 +77,68 @@ def initialize_chrome_driver(scraper_name: str):
     """Initialize ChromeDriver with multiple fallback strategies."""
     from selenium.webdriver.chrome.service import Service
     from webdriver_manager.chrome import ChromeDriverManager
+    import subprocess
+    import platform
     
     chrome_options = setup_chrome_options()
     driver = None
     
-    # Strategy 1: Try specific stable version first (known to work on macOS)
-    try:
-        logger.info(f"Attempting ChromeDriver v138.0.7204.183 for {scraper_name}")
-        service = Service(
-            ChromeDriverManager(driver_version="138.0.7204.183").install()
-        )
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        logger.info(f"ChromeDriver v138.0.7204.183 initialized successfully for {scraper_name}")
-        return driver
-    except Exception as e1:
-        logger.warning(f"ChromeDriver v138.0.7204.183 failed for {scraper_name}: {e1}")
-        
-    # Strategy 2: Try another stable version
-    try:
-        logger.info(f"Attempting ChromeDriver v130.0.6723.116 for {scraper_name}")
-        service = Service(
-            ChromeDriverManager(driver_version="130.0.6723.116").install()
-        )
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        logger.info(f"ChromeDriver v130.0.6723.116 initialized successfully for {scraper_name}")
-        return driver
-    except Exception as e2:
-        logger.warning(f"ChromeDriver v130.0.6723.116 failed for {scraper_name}: {e2}")
-        
-    # Strategy 3: Try latest version as last resort
+    # Get Chrome version for better compatibility
+    chrome_version = None
+    if platform.system() == "Darwin":  # macOS
+        try:
+            result = subprocess.run([
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", 
+                "--version"
+            ], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                chrome_version = result.stdout.strip().split()[-1]
+                logger.info(f"Detected Chrome version: {chrome_version}")
+        except Exception as e:
+            logger.warning(f"Could not detect Chrome version: {e}")
+    
+    # Strategy 1: Try matching ChromeDriver version if we detected Chrome version
+    if chrome_version:
+        try:
+            major_version = chrome_version.split('.')[0]
+            logger.info(f"Attempting ChromeDriver for Chrome v{major_version} for {scraper_name}")
+            
+            # Try to get a matching version
+            service = Service(ChromeDriverManager(chrome_type="google-chrome").install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            logger.info(f"ChromeDriver for Chrome v{major_version} initialized successfully for {scraper_name}")
+            return driver
+        except Exception as e1:
+            logger.warning(f"ChromeDriver for Chrome v{major_version} failed for {scraper_name}: {e1}")
+    
+    # Strategy 2: Try latest version
     try:
         logger.info(f"Attempting latest ChromeDriver version for {scraper_name}")
         service = Service(ChromeDriverManager().install())
+        
+        # Add service arguments to help with macOS issues
+        service.service_args = ["--verbose", "--log-path=/tmp/chromedriver.log"]
+        
         driver = webdriver.Chrome(service=service, options=chrome_options)
         logger.info(f"Latest ChromeDriver initialized successfully for {scraper_name}")
+        return driver
+    except Exception as e2:
+        logger.warning(f"Latest ChromeDriver failed for {scraper_name}: {e2}")
+    
+    # Strategy 3: Try with explicit service configuration
+    try:
+        logger.info(f"Attempting ChromeDriver with explicit configuration for {scraper_name}")
+        
+        # Use a more basic Chrome options setup for compatibility
+        basic_options = Options()
+        basic_options.add_argument("--headless")
+        basic_options.add_argument("--no-sandbox") 
+        basic_options.add_argument("--disable-dev-shm-usage")
+        basic_options.add_argument("--disable-gpu")
+        
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=basic_options)
+        logger.info(f"Basic ChromeDriver initialized successfully for {scraper_name}")
         return driver
     except Exception as e3:
         logger.error(f"All ChromeDriver initialization strategies failed for {scraper_name}: {e3}")
