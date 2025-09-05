@@ -251,11 +251,9 @@ class AppDirectories:
 
             # Try the locations defined in the build script
             possible_paths = [
-                bundle_dir
-                / "_internal"
-                / "config",  # Primary location from build script
-                bundle_dir / "_internal" / "defaults",  # Alternative defaults location
-                bundle_dir / "config",  # Fallback location
+                bundle_dir / "_internal" / "defaults",  # Primary: matches blogsai.spec line 25
+                bundle_dir / "_internal" / "config",    # Secondary: legacy location
+                bundle_dir / "config",                  # Fallback location
             ]
 
             # Also check environment variables set by runtime hook
@@ -267,7 +265,7 @@ class AppDirectories:
                     return path
 
             # If none found, return the expected path for error reporting
-            return bundle_dir / "_internal" / "config"
+            return bundle_dir / "_internal" / "defaults"
         else:
             # Running from source - use the defaults directory
             return Path(__file__).parent / "defaults"
