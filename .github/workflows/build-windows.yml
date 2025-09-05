@@ -29,32 +29,49 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests beautifulsoup4 openai sqlalchemy pydantic pyyaml click jinja2 python-dateutil selenium python-dotenv markdown webdriver-manager reportlab pyqt5 pyinstaller keyring platformdirs pytz
+        pip install requests beautifulsoup4 openai sqlalchemy pydantic pyyaml click jinja2 python-dateutil selenium python-dotenv markdown webdriver-manager reportlab keyring platformdirs pytz
+        pip install pyinstaller
+        # Install PyQt5 with specific Windows handling
+        pip install PyQt5==5.15.10 PyQt5-Qt5==5.15.2 PyQt5-sip==12.13.0
+        # Install the current package in editable mode to fix import paths
+        pip install -e .
     
     - name: Verify build environment
       run: |
-        echo "Python version:"
+        Write-Host "Python version:"
         python --version
-        echo "PyInstaller version:"
+        Write-Host "PyInstaller version:"
         pyinstaller --version
-        echo "Current directory contents:"
-        dir
-        echo "Checking required files:"
-        if exist "standalone_app_new.py" (echo "✓ standalone_app_new.py found") else (echo "✗ standalone_app_new.py missing")
-        if exist "build.py" (echo "✓ build.py found") else (echo "✗ build.py missing")
-        if exist "assets" (echo "✓ assets directory found") else (echo "✗ assets directory missing")
-        if exist "blogsai" (echo "✓ blogsai package found") else (echo "✗ blogsai package missing")
+        Write-Host "PyQt5 installation:"
+        python -c "import PyQt5; print('✓ PyQt5 imported successfully')"
+        if ($LASTEXITCODE -ne 0) { Write-Host "✗ PyQt5 import failed" }
+        Write-Host "BlogsAI package installation:"
+        python -c "import blogsai; print('✓ blogsai package imported successfully')"
+        if ($LASTEXITCODE -ne 0) { Write-Host "✗ blogsai package import failed" }
+        python -c "import blogsai.scrapers.government; print('✓ blogsai.scrapers.government imported successfully')"
+        if ($LASTEXITCODE -ne 0) { Write-Host "✗ blogsai.scrapers.government import failed" }
+        Write-Host "Current directory contents:"
+        Get-ChildItem
+        Write-Host "Checking required files:"
+        if (Test-Path "standalone_app_new.py") { Write-Host "✓ standalone_app_new.py found" } else { Write-Host "✗ standalone_app_new.py missing" }
+        if (Test-Path "build.py") { Write-Host "✓ build.py found" } else { Write-Host "✗ build.py missing" }
+        if (Test-Path "assets") { Write-Host "✓ assets directory found" } else { Write-Host "✗ assets directory missing" }
+        if (Test-Path "blogsai") { Write-Host "✓ blogsai package found" } else { Write-Host "✗ blogsai package missing" }
+      shell: pwsh
     
     - name: Build Windows executable
+      env:
+        PYTHONPATH: ${{ github.workspace }}
       run: |
         python build.py
     
     - name: Verify build output
       run: |
-        echo "Build completed. Checking output:"
-        if exist "dist" (echo "✓ dist directory created") else (echo "✗ dist directory missing")
-        dir dist
-        if exist "dist\BlogsAI-Windows.zip" (echo "✓ Windows ZIP created") else (echo "✗ Windows ZIP missing")
+        Write-Host "Build completed. Checking output:"
+        if (Test-Path "dist") { Write-Host "✓ dist directory created" } else { Write-Host "✗ dist directory missing" }
+        Get-ChildItem dist
+        if (Test-Path "dist/BlogsAI-Windows.zip") { Write-Host "✓ Windows ZIP created" } else { Write-Host "✗ Windows ZIP missing" }
+      shell: pwsh
     
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4
