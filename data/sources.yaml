@@ -1,0 +1,20 @@
+sources:
+  agencies:
+    cftc:
+      base_url: https://www.cftc.gov
+      enabled: true
+      name: Commodity Futures Trading Commission
+      press_releases_url: https://www.cftc.gov/PressRoom/PressReleases
+      scraper_type: government
+    doj:
+      base_url: https://www.justice.gov
+      enabled: true
+      name: Department of Justice
+      press_releases_url: https://www.justice.gov/news
+      scraper_type: government
+    sec:
+      base_url: https://www.sec.gov
+      enabled: true
+      name: Securities and Exchange Commission
+      press_releases_url: https://www.sec.gov/news/pressreleases
+      scraper_type: government

@@ -1,0 +1,27 @@
+analysis:
+  lookback_days:
+    daily: 1
+  max_articles_per_report: 50
+database:
+  echo: false
+  url: sqlite:///data/blogsai.db
+openai:
+  max_tokens: 4000
+  model: gpt-4o
+  research_model: gpt-4o
+  temperature: 0.3
+reporting:
+  formats:
+  - html
+  - json
+  - markdown
+  include_source_links: true
+  output_dir: data/reports
+scheduling:
+  daily_time: 09:00
+  timezone: UTC
+scraping:
+  delay_between_requests: 1
+  max_retries: 3
+  timeout: 30
+  user_agent: BlogsAI/1.0
