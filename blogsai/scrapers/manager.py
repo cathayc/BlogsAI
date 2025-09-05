@@ -94,12 +94,27 @@ class ScraperManager:
                 scraper.close()
 
     def _init_scrapers(self):
+        import logging
+        import time
+        
+        logger = logging.getLogger(__name__)
         classes = {"doj": DOJScraper, "sec": SECScraper, "cftc": CFTCScraper}
 
         # Only initialize government agency scrapers
-        for name, config in self.config.sources.get("agencies", {}).items():
+        # Add delay between initializations to avoid ChromeDriver conflicts
+        for i, (name, config) in enumerate(self.config.sources.get("agencies", {}).items()):
             if name in classes:
-                self.scrapers[name] = classes[name](config, self.config.scraping)
+                try:
+                    logger.info(f"Initializing {name} scraper...")
+                    self.scrapers[name] = classes[name](config, self.config.scraping)
+                    
+                    # Add small delay between scraper initializations to prevent conflicts
+                    if i < len(self.config.sources.get("agencies", {})) - 1:  # Not the last one
+                        time.sleep(1.0)  # 1 second delay
+                        
+                except Exception as e:
+                    logger.error(f"Failed to initialize {name} scraper: {e}")
+                    # Continue with other scrapers even if one fails
 
     def scrape_all_sources(self, days_back: int = 1) -> Dict[str, Any]:
         """Scrape all configured sources with proper error handling and logging."""

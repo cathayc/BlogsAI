@@ -48,7 +48,7 @@ def setup_chrome_options():
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-images")
     chrome_options.add_argument("--disable-notifications")
-    chrome_options.add_argument("--remote-debugging-port=9222")
+    # Note: remote-debugging-port is set dynamically in initialize_chrome_driver()
     chrome_options.add_argument(
         "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
@@ -82,14 +82,28 @@ def initialize_chrome_driver(scraper_name: str):
     import subprocess
     import platform
     import os
+    import random
     
     logger.info(f"Initializing ChromeDriver for {scraper_name}...")
     
-    # Windows: Use the existing working approach
+    # Windows: Use the existing working approach with unique ports
     if platform.system() == "Windows":
         try:
             logger.info(f"Windows: Standard ChromeDriver setup for {scraper_name}")
             chrome_options = setup_chrome_options()
+            
+            # Use different debugging ports for each scraper to avoid conflicts
+            port_map = {
+                "Department of Justice": 9222,
+                "Securities and Exchange Commission": 9223, 
+                "Commodity Futures Trading Commission": 9224
+            }
+            debug_port = port_map.get(scraper_name, 9222 + random.randint(10, 99))
+            
+            # Update the remote debugging port to avoid conflicts
+            chrome_options.add_argument(f"--remote-debugging-port={debug_port}")
+            logger.info(f"Using debug port {debug_port} for {scraper_name}")
+            
             service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=chrome_options)
             logger.info(f"Windows ChromeDriver initialized successfully for {scraper_name}")
