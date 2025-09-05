@@ -43,20 +43,20 @@ jobs:
         Write-Host "PyInstaller version:"
         pyinstaller --version
         Write-Host "PyQt5 installation:"
-        python -c "import PyQt5; print('✓ PyQt5 imported successfully')"
-        if ($LASTEXITCODE -ne 0) { Write-Host "✗ PyQt5 import failed" }
+        python -c "import PyQt5; print('SUCCESS: PyQt5 imported successfully')"
+        if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: PyQt5 import failed" }
         Write-Host "BlogsAI package installation:"
-        python -c "import blogsai; print('✓ blogsai package imported successfully')"
-        if ($LASTEXITCODE -ne 0) { Write-Host "✗ blogsai package import failed" }
-        python -c "import blogsai.scrapers.government; print('✓ blogsai.scrapers.government imported successfully')"
-        if ($LASTEXITCODE -ne 0) { Write-Host "✗ blogsai.scrapers.government import failed" }
+        python -c "import blogsai; print('SUCCESS: blogsai package imported successfully')"
+        if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: blogsai package import failed" }
+        python -c "import blogsai.scrapers.government; print('SUCCESS: blogsai.scrapers.government imported successfully')"
+        if ($LASTEXITCODE -ne 0) { Write-Host "ERROR: blogsai.scrapers.government import failed" }
         Write-Host "Current directory contents:"
         Get-ChildItem
         Write-Host "Checking required files:"
-        if (Test-Path "standalone_app_new.py") { Write-Host "✓ standalone_app_new.py found" } else { Write-Host "✗ standalone_app_new.py missing" }
-        if (Test-Path "build.py") { Write-Host "✓ build.py found" } else { Write-Host "✗ build.py missing" }
-        if (Test-Path "assets") { Write-Host "✓ assets directory found" } else { Write-Host "✗ assets directory missing" }
-        if (Test-Path "blogsai") { Write-Host "✓ blogsai package found" } else { Write-Host "✗ blogsai package missing" }
+        if (Test-Path "standalone_app_new.py") { Write-Host "SUCCESS: standalone_app_new.py found" } else { Write-Host "ERROR: standalone_app_new.py missing" }
+        if (Test-Path "build.py") { Write-Host "SUCCESS: build.py found" } else { Write-Host "ERROR: build.py missing" }
+        if (Test-Path "assets") { Write-Host "SUCCESS: assets directory found" } else { Write-Host "ERROR: assets directory missing" }
+        if (Test-Path "blogsai") { Write-Host "SUCCESS: blogsai package found" } else { Write-Host "ERROR: blogsai package missing" }
       shell: pwsh
     
     - name: Build Windows executable
@@ -68,9 +68,9 @@ jobs:
     - name: Verify build output
       run: |
         Write-Host "Build completed. Checking output:"
-        if (Test-Path "dist") { Write-Host "✓ dist directory created" } else { Write-Host "✗ dist directory missing" }
+        if (Test-Path "dist") { Write-Host "SUCCESS: dist directory created" } else { Write-Host "ERROR: dist directory missing" }
         Get-ChildItem dist
-        if (Test-Path "dist/BlogsAI-Windows.zip") { Write-Host "✓ Windows ZIP created" } else { Write-Host "✗ Windows ZIP missing" }
+        if (Test-Path "dist/BlogsAI-Windows.zip") { Write-Host "SUCCESS: Windows ZIP created" } else { Write-Host "ERROR: Windows ZIP missing" }
       shell: pwsh
     
     - name: Upload Windows artifacts

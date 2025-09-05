@@ -84,7 +84,7 @@ class DOJScraper(BaseScraper):
             # Strategy 1: Try latest version first
             try:
                 logger.info(f"Attempting ChromeDriver initialization (latest version) for {self.source_config.name}")
-            service = Service(ChromeDriverManager().install())
+                service = Service(ChromeDriverManager().install())
             except Exception as e1:
                 driver_error = f"Latest version failed: {e1}"
                 logger.warning(f"ChromeDriverManager (latest) failed: {e1}")

@@ -89,6 +89,8 @@ a = Analysis(
     pathex=[str(project_root)],
     binaries=[],
     datas=data_dirs,
+    # Include the entire blogsai package
+    packages=['blogsai'],
     hiddenimports=[
         # PyQt5 components
         'PyQt5.QtCore',
@@ -106,6 +108,11 @@ a = Analysis(
         'blogsai.gui.tabs.reports_tab',
         'blogsai.gui.workers.analysis_worker',
         'blogsai.gui.workers.base_worker',
+        'blogsai.gui.workers.scraping_worker',
+        'blogsai.gui.dialogs.first_time_setup_dialog',
+        'blogsai.gui.dialogs.article_dialog',
+        'blogsai.gui.dialogs.manual_article_dialog',
+        'blogsai.gui.dialogs.report_dialog',
         
         # Core and configuration (NEW DISTRIBUTION SYSTEM)
         'blogsai.core',
@@ -514,6 +521,12 @@ def main():
     """Main build process."""
     print("Building BlogsAI Desktop Application")
     print("=" * 50)
+    
+    # Ensure current directory is in Python path for build
+    project_root = Path.cwd()
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+        print(f"Added {project_root} to Python path")
     
     # Step 1: Clean previous builds
     clean_build()
