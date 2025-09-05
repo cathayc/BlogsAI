@@ -101,6 +101,9 @@ class ConfigManager:
 
         self._config: Config = None
 
+        # Ensure directories exist before setting up other components
+        self._ensure_directories()
+
         # Set up secure credential manager
         self.credential_manager = CredentialManager(str(self.config_dir))
 
@@ -114,6 +117,24 @@ class ConfigManager:
 
         # Migrate any existing environment variables to secure storage
         self._migrate_credentials()
+
+    def _ensure_directories(self):
+        """Ensure all required directories exist and are initialized with default content."""
+        try:
+            # Use app_dirs for comprehensive directory setup
+            from .app_dirs import app_dirs
+            
+            # Create all required directories
+            app_dirs.ensure_directories()
+            
+            # Initialize user configuration (including prompts) from bundled defaults
+            app_dirs.initialize_user_config()
+            
+        except Exception as e:
+            # Log error but don't fail completely - the app might still work
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to ensure directories and config initialization: {e}")
 
     def _get_config_dir(self, config_dir: str) -> Path:
         """Get the config directory, handling PyInstaller bundle structure."""
