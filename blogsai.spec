@@ -9,11 +9,16 @@ project_root = Path.cwd()
 block_cipher = None
 
 # Include bundled resources (templates, defaults) - NO runtime data
-data_dirs = [
-    ('data/config', '_internal/config'),  # Bundled config templates
-    ('assets', '_internal/assets'),       # Icons, themes, etc.
-    ('blogsai/config/defaults', '_internal/defaults'),  # Default configurations
-]
+data_dirs = []
+
+# Add directories only if they exist and have content
+from pathlib import Path as BuildPath
+if BuildPath('data/config').exists() and any(BuildPath('data/config').iterdir()):
+    data_dirs.append(('data/config', '_internal/config'))
+if BuildPath('assets').exists():
+    data_dirs.append(('assets', '_internal/assets'))
+if BuildPath('blogsai/config/defaults').exists():
+    data_dirs.append(('blogsai/config/defaults', '_internal/defaults'))
 
 # DO NOT include runtime data:
 # - No database files (*.db)

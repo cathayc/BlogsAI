@@ -38,9 +38,32 @@ jobs:
         poetry install --no-interaction --no-root
         poetry install --no-interaction
     
+    - name: Verify build environment
+      run: |
+        echo "Python version:"
+        python --version
+        echo "Poetry version:"
+        poetry --version
+        echo "PyInstaller version:"
+        poetry run pyinstaller --version
+        echo "Current directory contents:"
+        ls -la
+        echo "Checking required files:"
+        [ -f "standalone_app_new.py" ] && echo "✓ standalone_app_new.py found" || echo "✗ standalone_app_new.py missing"
+        [ -f "build.py" ] && echo "✓ build.py found" || echo "✗ build.py missing"
+        [ -d "assets" ] && echo "✓ assets directory found" || echo "✗ assets directory missing"
+        [ -d "blogsai" ] && echo "✓ blogsai package found" || echo "✗ blogsai package missing"
+    
     - name: Build macOS executable
       run: |
         poetry run python build.py
+    
+    - name: Verify build output
+      run: |
+        echo "Build completed. Checking output:"
+        [ -d "dist" ] && echo "✓ dist directory created" || echo "✗ dist directory missing"
+        ls -la dist/
+        [ -f "dist/BlogsAI-macOS.zip" ] && echo "✓ macOS ZIP created" || echo "✗ macOS ZIP missing"
     
     - name: Upload macOS artifacts
       uses: actions/upload-artifact@v4

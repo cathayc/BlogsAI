@@ -10,6 +10,26 @@ import shutil
 import subprocess
 from pathlib import Path
 
+def ensure_build_directories():
+    """Create necessary directories for PyInstaller build."""
+    print("Creating necessary build directories...")
+    
+    # Directories that PyInstaller expects to exist
+    directories_to_create = [
+        'data/config',
+        'assets',
+        'blogsai/config/defaults',
+        'hooks',
+    ]
+    
+    for directory in directories_to_create:
+        dir_path = Path(directory)
+        if not dir_path.exists():
+            dir_path.mkdir(parents=True, exist_ok=True)
+            print(f"Created directory: {directory}")
+        else:
+            print(f"Directory already exists: {directory}")
+
 def create_spec_file():
     """Create PyInstaller spec file."""
     
@@ -24,11 +44,16 @@ project_root = Path.cwd()
 block_cipher = None
 
 # Include bundled resources (templates, defaults) - NO runtime data
-data_dirs = [
-    ('data/config', '_internal/config'),  # Bundled config templates
-    ('assets', '_internal/assets'),       # Icons, themes, etc.
-    ('blogsai/config/defaults', '_internal/defaults'),  # Default configurations
-]
+data_dirs = []
+
+# Add directories only if they exist and have content
+from pathlib import Path as BuildPath
+if BuildPath('data/config').exists() and any(BuildPath('data/config').iterdir()):
+    data_dirs.append(('data/config', '_internal/config'))
+if BuildPath('assets').exists():
+    data_dirs.append(('assets', '_internal/assets'))
+if BuildPath('blogsai/config/defaults').exists():
+    data_dirs.append(('blogsai/config/defaults', '_internal/defaults'))
 
 # DO NOT include runtime data:
 # - No database files (*.db)
@@ -493,17 +518,20 @@ def main():
     # Step 1: Clean previous builds
     clean_build()
     
-    # Step 2: Clean production config for first-time setup testing
+    # Step 2: Ensure necessary directories exist
+    ensure_build_directories()
+    
+    # Step 3: Clean production config for first-time setup testing
     clean_production_config()
     
-    # Step 3: Create spec file
+    # Step 4: Create spec file
     create_spec_file()
     
-    # Step 4: Build application
+    # Step 5: Build application
     if not build_app():
         sys.exit(1)
     
-    # Step 5: Create distribution
+    # Step 6: Create distribution
     if not create_distribution():
         sys.exit(1)
     

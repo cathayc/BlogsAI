@@ -31,9 +31,30 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests beautifulsoup4 openai sqlalchemy pydantic pyyaml click jinja2 python-dateutil selenium python-dotenv markdown webdriver-manager reportlab pyqt5 pyinstaller keyring platformdirs pytz
     
+    - name: Verify build environment
+      run: |
+        echo "Python version:"
+        python --version
+        echo "PyInstaller version:"
+        pyinstaller --version
+        echo "Current directory contents:"
+        dir
+        echo "Checking required files:"
+        if exist "standalone_app_new.py" (echo "✓ standalone_app_new.py found") else (echo "✗ standalone_app_new.py missing")
+        if exist "build.py" (echo "✓ build.py found") else (echo "✗ build.py missing")
+        if exist "assets" (echo "✓ assets directory found") else (echo "✗ assets directory missing")
+        if exist "blogsai" (echo "✓ blogsai package found") else (echo "✗ blogsai package missing")
+    
     - name: Build Windows executable
       run: |
         python build.py
+    
+    - name: Verify build output
+      run: |
+        echo "Build completed. Checking output:"
+        if exist "dist" (echo "✓ dist directory created") else (echo "✗ dist directory missing")
+        dir dist
+        if exist "dist\BlogsAI-Windows.zip" (echo "✓ Windows ZIP created") else (echo "✗ Windows ZIP missing")
     
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4

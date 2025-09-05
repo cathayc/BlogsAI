@@ -3,6 +3,7 @@
 .cursor
 __pycache__/
 *.pyc
-data/
 dist/
 build/
+data/reports/
+data/logs/
