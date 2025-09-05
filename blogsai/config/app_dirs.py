@@ -192,7 +192,12 @@ class AppDirectories:
     @property
     def prompts_dir(self) -> Path:
         """Get the prompts directory."""
-        return self.app_config_dir / "prompts"
+        if self._is_development:
+            # Development mode: use project data/prompts directory
+            return Path(__file__).parent.parent.parent / "data" / "prompts"
+        else:
+            # Production mode: use config directory
+            return self.app_config_dir / "prompts"
 
     @property
     def user_config_file(self) -> Path:
