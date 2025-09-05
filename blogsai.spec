@@ -21,8 +21,19 @@ if BuildPath('data/config').exists() and any(BuildPath('data/config').iterdir())
     data_dirs.append(('data/config', '_internal/config'))
 if BuildPath('assets').exists():
     data_dirs.append(('assets', '_internal/assets'))
+# Include defaults directory structure with explicit subdirectories
 if BuildPath('blogsai/config/defaults').exists():
-    data_dirs.append(('blogsai/config/defaults', '_internal/defaults'))
+    # Include the main config files
+    if BuildPath('blogsai/config/defaults/settings.yaml').exists():
+        data_dirs.append(('blogsai/config/defaults/settings.yaml', '_internal/defaults/settings.yaml'))
+    if BuildPath('blogsai/config/defaults/sources.yaml').exists():
+        data_dirs.append(('blogsai/config/defaults/sources.yaml', '_internal/defaults/sources.yaml'))
+    
+    # Include all prompt files individually to ensure they get bundled properly
+    if BuildPath('blogsai/config/defaults/prompts').exists():
+        prompts_dir = BuildPath('blogsai/config/defaults/prompts')
+        for prompt_file in prompts_dir.glob('*.txt'):
+            data_dirs.append((str(prompt_file), f'_internal/defaults/prompts/{prompt_file.name}'))
 
 # DO NOT include runtime data:
 # - No database files (*.db)
