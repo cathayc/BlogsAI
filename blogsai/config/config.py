@@ -120,21 +120,51 @@ class ConfigManager:
 
     def _ensure_directories(self):
         """Ensure all required directories exist and are initialized with default content."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
             # Use app_dirs for comprehensive directory setup
             from .app_dirs import app_dirs
             
+            logger.info("ConfigManager: Creating directories...")
             # Create all required directories
             app_dirs.ensure_directories()
+            logger.info(f"ConfigManager: Directories created. Prompts dir: {app_dirs.prompts_dir}")
+            
+            # Check if prompts directory exists and is empty before initialization
+            prompts_exists = app_dirs.prompts_dir.exists()
+            prompts_empty = prompts_exists and not any(app_dirs.prompts_dir.iterdir())
+            logger.info(f"ConfigManager: Prompts directory exists: {prompts_exists}, is empty: {prompts_empty}")
+            
+            # Get bundled resource directory
+            bundled_dir = app_dirs.get_bundled_resource_dir()
+            bundled_prompts = bundled_dir / "prompts" if bundled_dir else None
+            bundled_prompts_exists = bundled_prompts.exists() if bundled_prompts else False
+            logger.info(f"ConfigManager: Bundled config dir: {bundled_dir}")
+            logger.info(f"ConfigManager: Bundled prompts dir: {bundled_prompts}, exists: {bundled_prompts_exists}")
+            
+            if bundled_prompts_exists and bundled_prompts:
+                try:
+                    prompt_files = list(bundled_prompts.glob("*.txt"))
+                    logger.info(f"ConfigManager: Found {len(prompt_files)} prompt files: {[f.name for f in prompt_files]}")
+                except Exception as list_error:
+                    logger.warning(f"ConfigManager: Could not list prompt files: {list_error}")
             
             # Initialize user configuration (including prompts) from bundled defaults
+            logger.info("ConfigManager: Initializing user config (including prompts)...")
             app_dirs.initialize_user_config()
+            
+            # Verify prompts were copied
+            if app_dirs.prompts_dir.exists():
+                copied_files = list(app_dirs.prompts_dir.glob("*.txt"))
+                logger.info(f"ConfigManager: After initialization, prompts directory has {len(copied_files)} files: {[f.name for f in copied_files]}")
+            else:
+                logger.warning("ConfigManager: Prompts directory does not exist after initialization!")
             
         except Exception as e:
             # Log error but don't fail completely - the app might still work
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Failed to ensure directories and config initialization: {e}")
+            logger.error(f"ConfigManager: Failed to ensure directories and config initialization: {e}", exc_info=True)
 
     def _get_config_dir(self, config_dir: str) -> Path:
         """Get the config directory, handling PyInstaller bundle structure."""
