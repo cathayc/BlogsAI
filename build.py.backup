@@ -37,8 +37,8 @@ def create_spec_file():
     import platform
     is_windows = platform.system().lower() == 'windows'
     
-    # Create spec content using string formatting to avoid f-string issues
-    spec_content = """# -*- mode: python ; coding: utf-8 -*-
+    # Create spec content by building it programmatically
+    spec_content = f"""# -*- mode: python ; coding: utf-8 -*-
 
 import sys
 from pathlib import Path
@@ -49,7 +49,7 @@ project_root = Path.cwd()
 block_cipher = None
 
 # Windows-specific configuration
-IS_WINDOWS = """ + str(is_windows) + """
+IS_WINDOWS = {is_windows}
 
 # Include bundled resources (templates, defaults) - NO runtime data
 data_dirs = []
@@ -230,7 +230,7 @@ a = Analysis(
         'nt',
     ],
     hookspath=['hooks'],
-    hooksconfig={},
+    hooksconfig={{}},
     runtime_hooks=['hooks/runtime_distribution.py', 'hooks/runtime_windows_dll.py'],
     excludes=excludes,
     win_no_prefer_redirects=True,   # WINDOWS FIX: Helps with DLL loading
@@ -387,7 +387,7 @@ if not IS_WINDOWS and sys.platform == 'darwin':
         name='BlogsAI.app',
         icon='assets/icon.icns',
         bundle_identifier='com.blogsai.app',
-        info_plist={
+        info_plist={{
             'CFBundleName': 'BlogsAI',
             'CFBundleDisplayName': 'BlogsAI',
             'CFBundleVersion': '1.0.0',
@@ -401,7 +401,7 @@ if not IS_WINDOWS and sys.platform == 'darwin':
             # File system access
             'NSDocumentsFolderUsageDescription': 'BlogsAI may save reports to your Documents folder.',
             'NSDesktopFolderUsageDescription': 'BlogsAI may save reports to your Desktop.',
-        },
+        }},
     )
 """
     
