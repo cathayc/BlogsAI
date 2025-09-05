@@ -100,34 +100,62 @@ def initialize_chrome_driver(scraper_name: str):
     
     # macOS: Use multiple fallback strategies for compatibility
     elif platform.system() == "Darwin":
-        # Strategy 1: Try with basic options first (most compatible for macOS)
+        # Strategy 1: Skip ChromeDriver entirely - use HTTP-based scraping
+        logger.info(f"macOS Strategy 1: Attempting HTTP-based scraping for {scraper_name} (no ChromeDriver needed)")
         try:
-            logger.info(f"macOS Strategy 1: Basic ChromeDriver setup for {scraper_name}")
+            # Test if we can access the website via HTTP
+            import requests
+            from bs4 import BeautifulSoup
+            
+            # Test URLs for different scrapers
+            test_urls = {
+                "Department of Justice": "https://www.justice.gov/news",
+                "Securities and Exchange Commission": "https://www.sec.gov/news/press-releases", 
+                "Commodity Futures Trading Commission": "https://www.cftc.gov/PressRoom/PressReleases"
+            }
+            
+            test_url = test_urls.get(scraper_name, "https://www.justice.gov/news")
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+            
+            response = requests.get(test_url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                # If we can parse content, HTTP scraping might work
+                if soup.find('body'):
+                    logger.info(f"macOS Strategy 1: HTTP-based scraping available for {scraper_name}")
+                    return "HTTP_FALLBACK"  # Special marker for HTTP-based scraping
+            
+            logger.warning(f"macOS Strategy 1: HTTP test failed for {scraper_name}")
+            
+        except Exception as e1:
+            logger.warning(f"macOS Strategy 1 (HTTP test) failed for {scraper_name}: {e1}")
+        
+        # Strategy 2: Try basic ChromeDriver with minimal options
+        try:
+            logger.info(f"macOS Strategy 2: Basic ChromeDriver for {scraper_name}")
             
             basic_options = Options()
-            basic_options.add_argument("--headless=new")
+            basic_options.add_argument("--headless")
             basic_options.add_argument("--no-sandbox")
             basic_options.add_argument("--disable-dev-shm-usage")
             basic_options.add_argument("--disable-gpu")
-            basic_options.add_argument("--disable-extensions")
-            basic_options.add_argument("--disable-background-networking")
-            basic_options.add_argument("--disable-default-apps")
-            basic_options.add_argument("--disable-sync")
             
-            # Use webdriver-manager with fresh download
             os.environ['WDM_LOG_LEVEL'] = '0'
             service = Service(ChromeDriverManager().install())
             
             driver = webdriver.Chrome(service=service, options=basic_options)
-            logger.info(f"macOS Strategy 1: ChromeDriver initialized successfully for {scraper_name}")
+            logger.info(f"macOS Strategy 2: Basic ChromeDriver initialized successfully for {scraper_name}")
             return driver
             
-        except Exception as e1:
-            logger.warning(f"macOS Strategy 1 failed for {scraper_name}: {e1}")
+        except Exception as e2:
+            logger.warning(f"macOS Strategy 2 (basic ChromeDriver) failed for {scraper_name}: {e2}")
         
-        # Strategy 2: Try with system ChromeDriver (Homebrew installation)
+        # Strategy 3: Try with system ChromeDriver (Homebrew installation) 
         try:
-            logger.info(f"macOS Strategy 2: System ChromeDriver for {scraper_name}")
+            logger.info(f"macOS Strategy 3: System ChromeDriver for {scraper_name}")
             
             chromedriver_paths = [
                 "/opt/homebrew/bin/chromedriver",  # Apple Silicon Homebrew
@@ -150,29 +178,16 @@ def initialize_chrome_driver(scraper_name: str):
                 
                 service = Service(system_chromedriver)
                 driver = webdriver.Chrome(service=service, options=basic_options)
-                logger.info(f"macOS Strategy 2: System ChromeDriver initialized successfully for {scraper_name}")
+                logger.info(f"macOS Strategy 3: System ChromeDriver initialized successfully for {scraper_name}")
                 return driver
             else:
                 logger.info("No system ChromeDriver found")
                 
-        except Exception as e2:
-            logger.warning(f"macOS Strategy 2 failed for {scraper_name}: {e2}")
-        
-        # Strategy 3: Try with original setup_chrome_options as fallback
-        try:
-            logger.info(f"macOS Strategy 3: Original Chrome options for {scraper_name}")
-            
-            chrome_options = setup_chrome_options()
-            service = Service(ChromeDriverManager().install())
-            
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-            logger.info(f"macOS Strategy 3: ChromeDriver initialized successfully for {scraper_name}")
-            return driver
-            
         except Exception as e3:
             logger.warning(f"macOS Strategy 3 failed for {scraper_name}: {e3}")
         
         logger.error(f"All macOS ChromeDriver strategies failed for {scraper_name}")
+        logger.info(f"Returning None - scrapers should handle HTTP fallback for {scraper_name}")
         return None
     
     # Linux: Use standard approach
