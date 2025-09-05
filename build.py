@@ -33,7 +33,11 @@ def ensure_build_directories():
 def create_spec_file():
     """Create PyInstaller spec file."""
     
-    spec_content = '''# -*- mode: python ; coding: utf-8 -*-
+    # Detect if we're on Windows to use onefile mode
+    import platform
+    is_windows = platform.system().lower() == 'windows'
+    
+    spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
 
 import sys
 from pathlib import Path
@@ -42,6 +46,9 @@ from pathlib import Path
 project_root = Path.cwd()
 
 block_cipher = None
+
+# Windows-specific configuration
+IS_WINDOWS = {is_windows}'''
 
 # Include bundled resources (templates, defaults) - NO runtime data
 data_dirs = []
@@ -205,13 +212,37 @@ a = Analysis(
         'markdown.extensions.fenced_code',
         'markdown.extensions.codehilite',
         'markdown.extensions.extra',
+        
+        # Windows-specific DLL and runtime imports
+        'encodings',
+        'encodings.utf_8',
+        'encodings.cp1252',
+        'encodings.ascii',
+        '_ctypes',
+        'ctypes',
+        'ctypes.wintypes',
+        'ctypes.util',
+        '_socket',
+        '_ssl',
+        '_hashlib',
+        '_sqlite3',
+        '_decimal',
+        '_datetime',
+        '_json',
+        '_pickle',
+        '_random',
+        '_struct',
+        '_csv',
+        'msvcrt',
+        'winreg',
+        'winsound',
     ],
-    hookspath=[],
+    hookspath=['hooks'],
     hooksconfig={},
     runtime_hooks=['hooks/runtime_distribution.py'],
     excludes=excludes,
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
+    win_no_prefer_redirects=True,   # WINDOWS FIX: Helps with DLL loading
+    win_private_assemblies=True,    # WINDOWS FIX: Include private assemblies
     cipher=block_cipher,
     noarchive=False,
 )
@@ -297,59 +328,87 @@ a.binaries = remove_qt_plugins(a.binaries)
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    [],
-    exclude_binaries=True,
-    name='BlogsAI',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=True,        # Strip debug symbols to reduce size
-    upx=True,          # Compress with UPX  
-    console=False,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-)
+# Windows: Use onefile mode to avoid DLL issues
+# macOS/Linux: Use onedir mode for better performance
+if IS_WINDOWS:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,      # Include binaries in onefile for Windows
+        a.zipfiles,
+        a.datas,
+        [],
+        name='BlogsAI',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,     # Don't strip - causes DLL issues on Windows
+        upx=False,       # Don't use UPX - causes DLL issues on Windows  
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        icon='assets/icon.ico' if Path('assets/icon.ico').exists() else None,
+    )
+else:
+    # macOS/Linux: Use traditional onedir mode
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name='BlogsAI',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=False,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+    )
 
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=True,       # Strip debug symbols
-    upx=True,         # Compress with UPX
-    upx_exclude=[
-        # Exclude certain files from UPX compression if they cause issues
-        'BlogsAI',    # Main executable
-    ],
-    name='BlogsAI',
-)
+# Only create COLLECT for non-Windows (onedir mode)
+if not IS_WINDOWS:
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        strip=False,
+        upx=False,
+        upx_exclude=[],
+        name='BlogsAI',
+    )
 
-app = BUNDLE(
-    coll,
-    name='BlogsAI.app',
-    icon='assets/icon.icns',
-    bundle_identifier='com.blogsai.app',
-    info_plist={
-        'CFBundleName': 'BlogsAI',
-        'CFBundleDisplayName': 'BlogsAI',
-        'CFBundleVersion': '1.0.0',
-        'CFBundleShortVersionString': '1.0.0',
-        'CFBundleIdentifier': 'com.blogsai.app',
-        'NSHighResolutionCapable': True,
-        'NSRequiresAquaSystemAppearance': True,  # Force light mode
-        # Privacy usage descriptions for macOS security
-        'NSAppleEventsUsageDescription': 'BlogsAI needs access to system events for proper functionality.',
-        'NSSystemAdministrationUsageDescription': 'BlogsAI needs to create application support directories.',
-        # File system access
-        'NSDocumentsFolderUsageDescription': 'BlogsAI may save reports to your Documents folder.',
-        'NSDesktopFolderUsageDescription': 'BlogsAI may save reports to your Desktop.',
-    },
-)
+# Only create BUNDLE for macOS
+if not IS_WINDOWS and sys.platform == 'darwin':
+    app = BUNDLE(
+        coll,
+        name='BlogsAI.app',
+        icon='assets/icon.icns',
+        bundle_identifier='com.blogsai.app',
+        info_plist={
+            'CFBundleName': 'BlogsAI',
+            'CFBundleDisplayName': 'BlogsAI',
+            'CFBundleVersion': '1.0.0',
+            'CFBundleShortVersionString': '1.0.0',
+            'CFBundleIdentifier': 'com.blogsai.app',
+            'NSHighResolutionCapable': True,
+            'NSRequiresAquaSystemAppearance': True,  # Force light mode
+            # Privacy usage descriptions for macOS security
+            'NSAppleEventsUsageDescription': 'BlogsAI needs access to system events for proper functionality.',
+            'NSSystemAdministrationUsageDescription': 'BlogsAI needs to create application support directories.',
+            # File system access
+            'NSDocumentsFolderUsageDescription': 'BlogsAI may save reports to your Documents folder.',
+            'NSDesktopFolderUsageDescription': 'BlogsAI may save reports to your Desktop.',
+        },
+    )
 '''
     
     with open('blogsai.spec', 'w') as f:
@@ -427,28 +486,55 @@ def create_macos_distribution():
 
 def create_windows_distribution():
     """Create Windows distribution package."""
-    if not Path('dist/BlogsAI').exists():
-        print("No Windows executable found to package")
-        return False
+    # Check for both onefile and onedir structures
+    onefile_exe = Path('dist/BlogsAI.exe')
+    onedir_folder = Path('dist/BlogsAI')
     
-    print("Creating Windows distribution package...")
-    
-    os.chdir('dist')
-    
-    # Create ZIP package
-    result = subprocess.run([
-        'powershell', 'Compress-Archive', '-Path', 'BlogsAI', '-DestinationPath', 'BlogsAI-Windows.zip', '-Force'
-    ], capture_output=True, text=True)
-    
-    os.chdir('..')
-    
-    if result.returncode == 0:
-        zip_path = Path('dist/BlogsAI-Windows.zip')
-        size_mb = zip_path.stat().st_size / (1024 * 1024)
-        print(f"Windows distribution created: {zip_path} ({size_mb:.1f}MB)")
-        return True
+    if onefile_exe.exists():
+        # Onefile mode - just zip the single executable
+        print("Creating Windows distribution package (onefile mode)...")
+        
+        os.chdir('dist')
+        
+        # Create ZIP package with the single executable
+        result = subprocess.run([
+            'powershell', 'Compress-Archive', '-Path', 'BlogsAI.exe', '-DestinationPath', 'BlogsAI-Windows.zip', '-Force'
+        ], capture_output=True, text=True)
+        
+        os.chdir('..')
+        
+        if result.returncode == 0:
+            zip_path = Path('dist/BlogsAI-Windows.zip')
+            size_mb = zip_path.stat().st_size / (1024 * 1024)
+            print(f"Windows distribution created: {zip_path} ({size_mb:.1f}MB)")
+            return True
+        else:
+            print(f"Failed to create Windows ZIP: {result.stderr}")
+            return False
+            
+    elif onedir_folder.exists():
+        # Onedir mode - zip the entire folder
+        print("Creating Windows distribution package (onedir mode)...")
+        
+        os.chdir('dist')
+        
+        # Create ZIP package
+        result = subprocess.run([
+            'powershell', 'Compress-Archive', '-Path', 'BlogsAI', '-DestinationPath', 'BlogsAI-Windows.zip', '-Force'
+        ], capture_output=True, text=True)
+        
+        os.chdir('..')
+        
+        if result.returncode == 0:
+            zip_path = Path('dist/BlogsAI-Windows.zip')
+            size_mb = zip_path.stat().st_size / (1024 * 1024)
+            print(f"Windows distribution created: {zip_path} ({size_mb:.1f}MB)")
+            return True
+        else:
+            print(f"Failed to create Windows ZIP: {result.stderr}")
+            return False
     else:
-        print(f"Failed to create Windows ZIP: {result.stderr}")
+        print("No Windows executable found to package")
         return False
 
 def create_linux_distribution():
