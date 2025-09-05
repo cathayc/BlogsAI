@@ -17,7 +17,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 
 from .base import BaseScraper
-from ._common import setup_chrome_options, log_safe_content
+from ._common import setup_chrome_options, log_safe_content, initialize_chrome_driver
 
 logger = logging.getLogger(__name__)
 
@@ -28,64 +28,15 @@ class DOJScraper(BaseScraper):
     def __init__(self, source_config, scraping_config):
         super().__init__(source_config, scraping_config)
         
-        # Set up headless Chrome WebDriver with proper binary path
-        chrome_options = setup_chrome_options()
+        # Initialize ChromeDriver using the common helper function
+        self.driver = initialize_chrome_driver(self.source_config.name)
         
-        # Initialize WebDriver with automatic driver management
-        # Use stable ChromeDriver version to avoid macOS security issues
-        self.driver = None
-        
-        try:
-            # Try multiple ChromeDriver initialization strategies
-            service = None
-            driver_error = None
+        if self.driver:
+            self.driver.implicitly_wait(10)
+            logger.debug(f"ChromeDriver session ID: {self.driver.session_id}")
             
-            # Strategy 1: Try latest version first
-            try:
-                logger.info(f"Attempting ChromeDriver initialization (latest version) for {self.source_config.name}")
-                service = Service(ChromeDriverManager().install())
-            except Exception as e1:
-                driver_error = f"Latest version failed: {e1}"
-                logger.warning(f"ChromeDriverManager (latest) failed: {e1}")
-                
-                # Strategy 2: Try specific stable version
-                try:
-                    logger.info(f"Attempting ChromeDriver initialization (v138.0.7204.183) for {self.source_config.name}")
-                    service = Service(
-                        ChromeDriverManager(driver_version="138.0.7204.183").install()
-                    )
-                except Exception as e2:
-                    driver_error = f"Specific version failed: {e2}"
-                    logger.warning(f"ChromeDriverManager (specific version) failed: {e2}")
-
-            if service:
-                try:
-                    logger.debug(
-                        f"Creating ChromeDriver instance for {self.source_config.name}"
-                    )
-                    self.driver = webdriver.Chrome(service=service, options=chrome_options)
-                    self.driver.implicitly_wait(10)
-                    logger.info(
-                        f"ChromeDriver initialized successfully for {self.source_config.name}"
-                    )
-                    logger.debug(f"ChromeDriver session ID: {self.driver.session_id}")
-                    
-                    # Use weakref.finalize for more reliable cleanup
-                    self._finalizer = weakref.finalize(self, self._cleanup_driver, self.driver)
-                except Exception as e:
-                    logger.error(f"Failed to create Chrome webdriver for {self.source_config.name}: {e}")
-                    self.driver = None
-            else:
-                logger.error(
-                    f"Could not initialize ChromeDriverManager for {self.source_config.name}: {driver_error}"
-                )
-                self.driver = None
-
-        except Exception as e:
-            logger.error(
-                f"Unexpected error during ChromeDriver initialization for {self.source_config.name}: {e}"
-            )
-            self.driver = None
+            # Use weakref.finalize for more reliable cleanup
+            self._finalizer = weakref.finalize(self, self._cleanup_driver, self.driver)
         
     @staticmethod
     def _cleanup_driver(driver):
