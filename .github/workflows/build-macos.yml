@@ -53,6 +53,8 @@ jobs:
         [ -f "build.py" ] && echo "✓ build.py found" || echo "✗ build.py missing"
         [ -d "assets" ] && echo "✓ assets directory found" || echo "✗ assets directory missing"
         [ -d "blogsai" ] && echo "✓ blogsai package found" || echo "✗ blogsai package missing"
+        echo "Testing scraper imports:"
+        poetry run python -c "try: from blogsai.scrapers import DOJScraper, SECScraper, CFTCScraper; print('✓ All government scrapers imported successfully'); except Exception as e: print(f'✗ Scraper import issue: {e}')" || echo "⚠ Scraper import test failed but build will continue"
     
     - name: Build macOS executable
       run: |
