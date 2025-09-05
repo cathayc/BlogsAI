@@ -9,7 +9,8 @@ import platform
 from pathlib import Path
 
 # Get the project root directory
-project_root = Path(__file__).parent
+import os
+project_root = Path(os.getcwd())
 block_cipher = None
 
 # macOS-specific configuration
