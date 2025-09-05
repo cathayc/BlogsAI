@@ -1,28 +1,20 @@
 #!/usr/bin/env python3
 """
-Simple build script for BlogsAI desktop application.
-Creates a standalone desktop app with light theme enforced.
+Build script for BlogsAI Desktop Application.
+Handles cross-platform builds with PyInstaller, including Windows DLL fixes.
 """
 
 import os
 import sys
 import shutil
 import subprocess
+import platform
 from pathlib import Path
 
-def ensure_build_directories():
-    """Create necessary directories for PyInstaller build."""
-    print("Creating necessary build directories...")
-    
-    # Directories that PyInstaller expects to exist
-    directories_to_create = [
-        'data/config',
-        'assets',
-        'blogsai/config/defaults',
-        'hooks',
-    ]
-    
-    for directory in directories_to_create:
+def ensure_directories():
+    """Ensure required directories exist."""
+    directories = ['build', 'dist', 'hooks']
+    for directory in directories:
         dir_path = Path(directory)
         if not dir_path.exists():
             dir_path.mkdir(parents=True, exist_ok=True)
@@ -34,11 +26,10 @@ def create_spec_file():
     """Create PyInstaller spec file."""
     
     # Detect if we're on Windows to use onefile mode
-    import platform
     is_windows = platform.system().lower() == 'windows'
     
-    # Create spec content using string formatting to avoid f-string issues
-    spec_content = """# -*- mode: python ; coding: utf-8 -*-
+    # Create spec content using simple string substitution
+    spec_template = '''# -*- mode: python ; coding: utf-8 -*-
 
 import sys
 from pathlib import Path
@@ -49,7 +40,7 @@ project_root = Path.cwd()
 block_cipher = None
 
 # Windows-specific configuration
-IS_WINDOWS = """ + str(is_windows) + """
+IS_WINDOWS = {is_windows_value}
 
 # Include bundled resources (templates, defaults) - NO runtime data
 data_dirs = []
@@ -230,7 +221,7 @@ a = Analysis(
         'nt',
     ],
     hookspath=['hooks'],
-    hooksconfig={},
+    hooksconfig={{}},
     runtime_hooks=['hooks/runtime_distribution.py', 'hooks/runtime_windows_dll.py'],
     excludes=excludes,
     win_no_prefer_redirects=True,   # WINDOWS FIX: Helps with DLL loading
@@ -387,7 +378,7 @@ if not IS_WINDOWS and sys.platform == 'darwin':
         name='BlogsAI.app',
         icon='assets/icon.icns',
         bundle_identifier='com.blogsai.app',
-        info_plist={
+        info_plist={{
             'CFBundleName': 'BlogsAI',
             'CFBundleDisplayName': 'BlogsAI',
             'CFBundleVersion': '1.0.0',
@@ -401,9 +392,12 @@ if not IS_WINDOWS and sys.platform == 'darwin':
             # File system access
             'NSDocumentsFolderUsageDescription': 'BlogsAI may save reports to your Documents folder.',
             'NSDesktopFolderUsageDescription': 'BlogsAI may save reports to your Desktop.',
-        },
+        }},
     )
-"""
+'''
+    
+    # Replace the placeholder with actual value
+    spec_content = spec_template.replace('{is_windows_value}', str(is_windows))
     
     with open('blogsai.spec', 'w') as f:
         f.write(spec_content)
@@ -417,7 +411,20 @@ def clean_build():
             shutil.rmtree(dir_name)
             print(f"Cleaned {dir_name} directory")
 
-# Remove unnecessary Qt plugins  
+def remove_qt_translations(datas):
+    """Remove Qt translation files except English."""
+    new_datas = []
+    for dest, source, kind in datas:
+        # Skip non-English Qt translations
+        if 'translations' in dest and dest.endswith('.qm'):
+            # Keep only English translations
+            if any(lang in dest for lang in ['_en.qm', '_en_']):
+                new_datas.append((dest, source, kind))
+            # Skip all other language translations
+        else:
+            new_datas.append((dest, source, kind))
+    return new_datas
+
 def remove_qt_plugins(binaries):
     """Remove unnecessary Qt plugins."""
     new_binaries = []
@@ -445,7 +452,6 @@ def remove_qt_plugins(binaries):
     
     return new_binaries
 
-# Remove debug symbols and unnecessary files
 def remove_debug_and_docs(datas):
     """Remove debug symbols, docs, and other unnecessary files."""
     new_datas = []
@@ -476,286 +482,103 @@ def remove_debug_and_docs(datas):
     
     return new_datas
 
-# Apply optimizations
-a.datas = remove_qt_translations(a.datas)
-a.datas = remove_debug_and_docs(a.datas)
-a.binaries = remove_qt_plugins(a.binaries)
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-
-# Windows: Use onefile mode to avoid DLL issues
-# macOS/Linux: Use onedir mode for better performance
-if IS_WINDOWS:
-    exe = EXE(
-        pyz,
-        a.scripts,
-        a.binaries,      # Include binaries in onefile for Windows
-        a.zipfiles,
-        a.datas,
-        [],
-        name='BlogsAI',
-        debug=False,
-        bootloader_ignore_signals=False,
-        strip=False,     # Don't strip - causes DLL issues on Windows
-        upx=False,       # Don't use UPX - causes DLL issues on Windows  
-        upx_exclude=[],
-        runtime_tmpdir=None,
-        console=False,
-        disable_windowed_traceback=False,
-        argv_emulation=False,
-        target_arch='x86_64',  # EXPLICIT 64-bit targeting to avoid ABI issues
-        codesign_identity=None,
-        entitlements_file=None,
-        icon='assets/icon.ico' if Path('assets/icon.ico').exists() else None,
-    )
-else:
-    # macOS/Linux: Use traditional onedir mode
-    exe = EXE(
-        pyz,
-        a.scripts,
-        [],
-        exclude_binaries=True,
-        name='BlogsAI',
-        debug=False,
-        bootloader_ignore_signals=False,
-        strip=False,
-        upx=False,
-        console=False,
-        disable_windowed_traceback=False,
-        argv_emulation=False,
-        target_arch=None,
-        codesign_identity=None,
-        entitlements_file=None,
-    )
-
-# Only create COLLECT for non-Windows (onedir mode)
-if not IS_WINDOWS:
-    coll = COLLECT(
-        exe,
-        a.binaries,
-        a.zipfiles,
-        a.datas,
-        strip=False,
-        upx=False,
-        upx_exclude=[],
-        name='BlogsAI',
-    )
-
-# Only create BUNDLE for macOS
-if not IS_WINDOWS and sys.platform == 'darwin':
-    app = BUNDLE(
-        coll,
-        name='BlogsAI.app',
-        icon='assets/icon.icns',
-        bundle_identifier='com.blogsai.app',
-        info_plist={
-            'CFBundleName': 'BlogsAI',
-            'CFBundleDisplayName': 'BlogsAI',
-            'CFBundleVersion': '1.0.0',
-            'CFBundleShortVersionString': '1.0.0',
-            'CFBundleIdentifier': 'com.blogsai.app',
-            'NSHighResolutionCapable': True,
-            'NSRequiresAquaSystemAppearance': True,  # Force light mode
-            # Privacy usage descriptions for macOS security
-            'NSAppleEventsUsageDescription': 'BlogsAI needs access to system events for proper functionality.',
-            'NSSystemAdministrationUsageDescription': 'BlogsAI needs to create application support directories.',
-            # File system access
-            'NSDocumentsFolderUsageDescription': 'BlogsAI may save reports to your Documents folder.',
-            'NSDesktopFolderUsageDescription': 'BlogsAI may save reports to your Desktop.',
-        },
-    )
-"""
-    
-    with open('blogsai.spec', 'w') as f:
-        f.write(spec_content)
-    print("Created PyInstaller spec file")
-
-def clean_build():
-    """Clean previous build artifacts."""
-    dirs_to_clean = ['build', 'dist']
-    for dir_name in dirs_to_clean:
-        if Path(dir_name).exists():
-            shutil.rmtree(dir_name)
-            print(f"Cleaned {dir_name} directory")
-
 def build_app():
     """Build the application using PyInstaller."""
-    print("Building BlogsAI application...")
-    
     try:
+        print("Running PyInstaller...")
         result = subprocess.run([
-            sys.executable, '-m', 'PyInstaller', 
-            '--clean', 'blogsai.spec'
+            sys.executable, '-m', 'PyInstaller',
+            'blogsai.spec',
+            '--clean',
+            '--noconfirm'
         ], check=True, capture_output=True, text=True)
         
-        print("Build completed successfully!")
+        print("PyInstaller build completed successfully")
         return True
         
     except subprocess.CalledProcessError as e:
-        print(f"Build failed: {e}")
-        print(f"Output: {e.stdout}")
-        print(f"Error: {e.stderr}")
-        return False
-
-def create_distribution():
-    """Create platform-specific distribution packages."""
-    import platform
-    
-    system = platform.system().lower()
-    
-    if system == 'darwin':
-        return create_macos_distribution()
-    elif system == 'windows':
-        return create_windows_distribution()
-    elif system == 'linux':
-        return create_linux_distribution()
-    else:
-        print(f"Unsupported platform: {system}")
-        return False
-
-def create_macos_distribution():
-    """Create macOS distribution package."""
-    if not Path('dist/BlogsAI.app').exists():
-        print("No app bundle found to package")
-        return False
-    
-    print("Creating macOS distribution package...")
-    
-    os.chdir('dist')
-    
-    # Create ZIP package
-    result = subprocess.run([
-        'zip', '-r', 'BlogsAI-macOS.zip', 'BlogsAI.app'
-    ], capture_output=True, text=True)
-    
-    os.chdir('..')
-    
-    if result.returncode == 0:
-        zip_path = Path('dist/BlogsAI-macOS.zip')
-        size_mb = zip_path.stat().st_size / (1024 * 1024)
-        print(f"macOS distribution created: {zip_path} ({size_mb:.1f}MB)")
-        return True
-    else:
-        print(f"Failed to create macOS ZIP: {result.stderr}")
+        print(f"PyInstaller build failed: {e}")
+        print("STDOUT:", e.stdout)
+        print("STDERR:", e.stderr)
         return False
 
 def create_windows_distribution():
     """Create Windows distribution package."""
-    # Check for both onefile and onedir structures
-    onefile_exe = Path('dist/BlogsAI.exe')
-    onedir_folder = Path('dist/BlogsAI')
+    print("Creating Windows distribution...")
     
-    if onefile_exe.exists():
-        # Onefile mode - just zip the single executable
-        print("Creating Windows distribution package (onefile mode)...")
+    # Check if we have the onefile executable
+    exe_path = Path('dist/BlogsAI.exe')
+    if exe_path.exists():
+        # We have onefile mode - zip the executable
+        zip_path = Path('dist/BlogsAI-Windows.zip')
         
-        os.chdir('dist')
+        import zipfile
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            zipf.write(exe_path, 'BlogsAI.exe')
         
-        # Create ZIP package with the single executable
-        result = subprocess.run([
-            'powershell', 'Compress-Archive', '-Path', 'BlogsAI.exe', '-DestinationPath', 'BlogsAI-Windows.zip', '-Force'
-        ], capture_output=True, text=True)
-        
-        os.chdir('..')
-        
-        if result.returncode == 0:
-            zip_path = Path('dist/BlogsAI-Windows.zip')
-            size_mb = zip_path.stat().st_size / (1024 * 1024)
-            print(f"Windows distribution created: {zip_path} ({size_mb:.1f}MB)")
-            return True
-        else:
-            print(f"Failed to create Windows ZIP: {result.stderr}")
-            return False
-            
-    elif onedir_folder.exists():
-        # Onedir mode - zip the entire folder
-        print("Creating Windows distribution package (onedir mode)...")
-        
-        os.chdir('dist')
-        
-        # Create ZIP package
-        result = subprocess.run([
-            'powershell', 'Compress-Archive', '-Path', 'BlogsAI', '-DestinationPath', 'BlogsAI-Windows.zip', '-Force'
-        ], capture_output=True, text=True)
-        
-        os.chdir('..')
-        
-        if result.returncode == 0:
-            zip_path = Path('dist/BlogsAI-Windows.zip')
-            size_mb = zip_path.stat().st_size / (1024 * 1024)
-            print(f"Windows distribution created: {zip_path} ({size_mb:.1f}MB)")
-            return True
-        else:
-            print(f"Failed to create Windows ZIP: {result.stderr}")
-            return False
-    else:
-        print("No Windows executable found to package")
-        return False
-
-def create_linux_distribution():
-    """Create Linux distribution package."""
-    if not Path('dist/BlogsAI').exists():
-        print("No Linux executable found to package")
-        return False
-    
-    print("Creating Linux distribution package...")
-    
-    os.chdir('dist')
-    
-    # Create tar.gz package
-    result = subprocess.run([
-        'tar', '-czf', 'BlogsAI-Linux.tar.gz', 'BlogsAI'
-    ], capture_output=True, text=True)
-    
-    os.chdir('..')
-    
-    if result.returncode == 0:
-        tar_path = Path('dist/BlogsAI-Linux.tar.gz')
-        size_mb = tar_path.stat().st_size / (1024 * 1024)
-        print(f"Linux distribution created: {tar_path} ({size_mb:.1f}MB)")
+        print(f"Created Windows distribution: {zip_path}")
         return True
     else:
-        print(f"Failed to create Linux tar.gz: {result.stderr}")
-        return False
+        # Check for onedir mode
+        dir_path = Path('dist/BlogsAI')
+        if dir_path.exists():
+            # We have onedir mode - zip the directory
+            zip_path = Path('dist/BlogsAI-Windows.zip')
+            
+            import zipfile
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for file_path in dir_path.rglob('*'):
+                    if file_path.is_file():
+                        arcname = file_path.relative_to(dir_path.parent)
+                        zipf.write(file_path, arcname)
+            
+            print(f"Created Windows distribution: {zip_path}")
+            return True
+    
+    print("ERROR: No built executable found")
+    return False
+
+def create_macos_distribution():
+    """Create macOS distribution package."""
+    print("Creating macOS distribution...")
+    
+    app_path = Path('dist/BlogsAI.app')
+    if app_path.exists():
+        # Create ZIP of the .app bundle
+        zip_path = Path('dist/BlogsAI-macOS.zip')
+        
+        import zipfile
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for file_path in app_path.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(app_path.parent)
+                    zipf.write(file_path, arcname)
+        
+        print(f"Created macOS distribution: {zip_path}")
+        return True
+    
+    print("ERROR: No built .app bundle found")
+    return False
+
+def create_distribution():
+    """Create platform-specific distribution."""
+    system = platform.system().lower()
+    
+    if system == 'windows':
+        return create_windows_distribution()
+    elif system == 'darwin':
+        return create_macos_distribution()
+    else:
+        print("Linux distribution not implemented yet")
+        return True
 
 def clean_production_config():
-    """Clean production config and credentials for first-time setup testing."""
-    print("Cleaning production configuration for first-time setup testing...")
-    
+    """Remove production config to ensure first-time setup."""
     try:
-        # Clean macOS production config directory
-        if sys.platform == 'darwin':
-            config_dir = Path.home() / 'Library' / 'Preferences' / 'BlogsAI'
-            if config_dir.exists():
-                shutil.rmtree(config_dir)
-                print(f"Removed production config: {config_dir}")
-        
-        # Clean Windows production config
-        elif sys.platform == 'win32':
-            config_dir = Path(os.getenv('APPDATA', '')) / 'BlogsAI'
-            if config_dir.exists():
-                shutil.rmtree(config_dir)
-                print(f"Removed production config: {config_dir}")
-        
-        # Clean Linux production config  
-        else:
-            xdg_config = os.getenv('XDG_CONFIG_HOME', Path.home() / '.config')
-            config_dir = Path(xdg_config) / 'blogsai'
-            if config_dir.exists():
-                shutil.rmtree(config_dir)
-                print(f"Removed production config: {config_dir}")
-                
-        # Clean API key from system keyring
-        try:
-            import keyring
-            try:
-                keyring.delete_password('BlogsAI', 'openai_api_key')
-                print("Removed API key from system keyring")
-            except keyring.errors.PasswordDeleteError:
-                pass  # Key doesn't exist, that's fine
-        except ImportError:
-            print("Keyring not available - skipping API key cleanup")
-            
+        production_config = Path('data/config/settings.yaml')
+        if production_config.exists():
+            production_config.unlink()
+            print("Removed production config - first-time setup will trigger")
     except Exception as e:
         print(f"Warning: Failed to clean production config: {e}")
         print("This won't affect the build, but first-time setup may not trigger")
@@ -769,18 +592,17 @@ def main():
     project_root = Path.cwd()
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
-        print(f"Added {project_root} to Python path")
     
-    # Step 1: Clean previous builds
+    # Step 1: Ensure directories exist
+    ensure_directories()
+    
+    # Step 2: Clean previous builds
     clean_build()
     
-    # Step 2: Ensure necessary directories exist
-    ensure_build_directories()
-    
-    # Step 3: Clean production config for first-time setup testing
+    # Step 3: Clean production config (force first-time setup)
     clean_production_config()
     
-    # Step 4: Create spec file
+    # Step 4: Create PyInstaller spec
     create_spec_file()
     
     # Step 5: Build application
