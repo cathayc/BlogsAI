@@ -74,73 +74,116 @@ def setup_chrome_options():
 
 
 def initialize_chrome_driver(scraper_name: str):
-    """Initialize ChromeDriver with multiple fallback strategies."""
+    """Initialize ChromeDriver with platform-specific strategies."""
+    from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.chrome.options import Options
     from webdriver_manager.chrome import ChromeDriverManager
     import subprocess
     import platform
+    import os
     
-    chrome_options = setup_chrome_options()
-    driver = None
+    logger.info(f"Initializing ChromeDriver for {scraper_name}...")
     
-    # Get Chrome version for better compatibility
-    chrome_version = None
-    if platform.system() == "Darwin":  # macOS
+    # Windows: Use the existing working approach
+    if platform.system() == "Windows":
         try:
-            result = subprocess.run([
-                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", 
-                "--version"
-            ], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
-                chrome_version = result.stdout.strip().split()[-1]
-                logger.info(f"Detected Chrome version: {chrome_version}")
-        except Exception as e:
-            logger.warning(f"Could not detect Chrome version: {e}")
-    
-    # Strategy 1: Try matching ChromeDriver version if we detected Chrome version
-    if chrome_version:
-        try:
-            major_version = chrome_version.split('.')[0]
-            logger.info(f"Attempting ChromeDriver for Chrome v{major_version} for {scraper_name}")
-            
-            # Try to get a matching version
-            service = Service(ChromeDriverManager(chrome_type="google-chrome").install())
+            logger.info(f"Windows: Standard ChromeDriver setup for {scraper_name}")
+            chrome_options = setup_chrome_options()
+            service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=chrome_options)
-            logger.info(f"ChromeDriver for Chrome v{major_version} initialized successfully for {scraper_name}")
+            logger.info(f"Windows ChromeDriver initialized successfully for {scraper_name}")
             return driver
+        except Exception as e:
+            logger.error(f"Windows ChromeDriver failed for {scraper_name}: {e}")
+            return None
+    
+    # macOS: Use multiple fallback strategies for compatibility
+    elif platform.system() == "Darwin":
+        # Strategy 1: Try with basic options first (most compatible for macOS)
+        try:
+            logger.info(f"macOS Strategy 1: Basic ChromeDriver setup for {scraper_name}")
+            
+            basic_options = Options()
+            basic_options.add_argument("--headless=new")
+            basic_options.add_argument("--no-sandbox")
+            basic_options.add_argument("--disable-dev-shm-usage")
+            basic_options.add_argument("--disable-gpu")
+            basic_options.add_argument("--disable-extensions")
+            basic_options.add_argument("--disable-background-networking")
+            basic_options.add_argument("--disable-default-apps")
+            basic_options.add_argument("--disable-sync")
+            
+            # Use webdriver-manager with fresh download
+            os.environ['WDM_LOG_LEVEL'] = '0'
+            service = Service(ChromeDriverManager().install())
+            
+            driver = webdriver.Chrome(service=service, options=basic_options)
+            logger.info(f"macOS Strategy 1: ChromeDriver initialized successfully for {scraper_name}")
+            return driver
+            
         except Exception as e1:
-            logger.warning(f"ChromeDriver for Chrome v{major_version} failed for {scraper_name}: {e1}")
+            logger.warning(f"macOS Strategy 1 failed for {scraper_name}: {e1}")
+        
+        # Strategy 2: Try with system ChromeDriver (Homebrew installation)
+        try:
+            logger.info(f"macOS Strategy 2: System ChromeDriver for {scraper_name}")
+            
+            chromedriver_paths = [
+                "/opt/homebrew/bin/chromedriver",  # Apple Silicon Homebrew
+                "/usr/local/bin/chromedriver",     # Intel Homebrew
+                "/usr/bin/chromedriver"            # System installation
+            ]
+            
+            system_chromedriver = None
+            for path in chromedriver_paths:
+                if os.path.exists(path):
+                    system_chromedriver = path
+                    break
+            
+            if system_chromedriver:
+                logger.info(f"Found system ChromeDriver at {system_chromedriver}")
+                basic_options = Options()
+                basic_options.add_argument("--headless")
+                basic_options.add_argument("--no-sandbox")
+                basic_options.add_argument("--disable-dev-shm-usage")
+                
+                service = Service(system_chromedriver)
+                driver = webdriver.Chrome(service=service, options=basic_options)
+                logger.info(f"macOS Strategy 2: System ChromeDriver initialized successfully for {scraper_name}")
+                return driver
+            else:
+                logger.info("No system ChromeDriver found")
+                
+        except Exception as e2:
+            logger.warning(f"macOS Strategy 2 failed for {scraper_name}: {e2}")
+        
+        # Strategy 3: Try with original setup_chrome_options as fallback
+        try:
+            logger.info(f"macOS Strategy 3: Original Chrome options for {scraper_name}")
+            
+            chrome_options = setup_chrome_options()
+            service = Service(ChromeDriverManager().install())
+            
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            logger.info(f"macOS Strategy 3: ChromeDriver initialized successfully for {scraper_name}")
+            return driver
+            
+        except Exception as e3:
+            logger.warning(f"macOS Strategy 3 failed for {scraper_name}: {e3}")
+        
+        logger.error(f"All macOS ChromeDriver strategies failed for {scraper_name}")
+        return None
     
-    # Strategy 2: Try latest version
-    try:
-        logger.info(f"Attempting latest ChromeDriver version for {scraper_name}")
-        service = Service(ChromeDriverManager().install())
-        
-        # Add service arguments to help with macOS issues
-        service.service_args = ["--verbose", "--log-path=/tmp/chromedriver.log"]
-        
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        logger.info(f"Latest ChromeDriver initialized successfully for {scraper_name}")
-        return driver
-    except Exception as e2:
-        logger.warning(f"Latest ChromeDriver failed for {scraper_name}: {e2}")
-    
-    # Strategy 3: Try with explicit service configuration
-    try:
-        logger.info(f"Attempting ChromeDriver with explicit configuration for {scraper_name}")
-        
-        # Use a more basic Chrome options setup for compatibility
-        basic_options = Options()
-        basic_options.add_argument("--headless")
-        basic_options.add_argument("--no-sandbox") 
-        basic_options.add_argument("--disable-dev-shm-usage")
-        basic_options.add_argument("--disable-gpu")
-        
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=basic_options)
-        logger.info(f"Basic ChromeDriver initialized successfully for {scraper_name}")
-        return driver
-    except Exception as e3:
-        logger.error(f"All ChromeDriver initialization strategies failed for {scraper_name}: {e3}")
-        
-    return None
+    # Linux: Use standard approach
+    else:
+        try:
+            logger.info(f"Linux: Standard ChromeDriver setup for {scraper_name}")
+            chrome_options = setup_chrome_options()
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            logger.info(f"Linux ChromeDriver initialized successfully for {scraper_name}")
+            return driver
+        except Exception as e:
+            logger.error(f"Linux ChromeDriver failed for {scraper_name}: {e}")
+            return None

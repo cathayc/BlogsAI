@@ -269,8 +269,8 @@ class AppDirectories:
             # If none found, return the expected path for error reporting
             return bundle_dir / "_internal" / "config"
         else:
-            # Running from source
-            return Path(__file__).parent.parent.parent / "data" / "config"
+            # Running from source - use the defaults directory
+            return Path(__file__).parent / "defaults"
 
     def ensure_directories(self):
         """Create all necessary directories."""
