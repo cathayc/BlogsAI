@@ -18,17 +18,17 @@ data_dirs = []
 # Add directories only if they exist and have content
 from pathlib import Path as BuildPath
 if BuildPath('data/config').exists() and any(BuildPath('data/config').iterdir()):
-    data_dirs.append(('data/config', '_internal/config'))
+    data_dirs.append(('data/config', 'config'))
 if BuildPath('assets').exists():
-    data_dirs.append(('assets', '_internal/assets'))
+    data_dirs.append(('assets', 'assets'))
+
 # Include defaults directory structure with explicit subdirectories
 if BuildPath('blogsai/config/defaults').exists():
     # Include the main config files
     if BuildPath('blogsai/config/defaults/settings.yaml').exists():
-        data_dirs.append(('blogsai/config/defaults/settings.yaml', '_internal/defaults/settings.yaml'))
+        data_dirs.append(('blogsai/config/defaults/settings.yaml', 'defaults/settings.yaml'))
     if BuildPath('blogsai/config/defaults/sources.yaml').exists():
-        data_dirs.append(('blogsai/config/defaults/sources.yaml', '_internal/defaults/sources.yaml'))
-    # we need to put prompts directory here too if it doesn't exist
+        data_dirs.append(('blogsai/config/defaults/sources.yaml', 'defaults/sources.yaml'))
     
     # Include the entire prompts directory to ensure all files are bundled
     if BuildPath('blogsai/config/defaults/prompts').exists():
@@ -37,15 +37,9 @@ if BuildPath('blogsai/config/defaults').exists():
         print(f"PyInstaller: Found {len(prompt_files)} prompt files in {prompts_dir}")
         
         # Include the entire prompts directory
-        data_dirs.append(('blogsai/config/defaults/prompts', '_internal/defaults/prompts'))
-        print(f"PyInstaller: Adding entire prompts directory: blogsai/config/defaults/prompts -> _internal/defaults/prompts")
+        data_dirs.append(('blogsai/config/defaults/prompts', 'defaults/prompts'))
+        print(f"PyInstaller: Adding entire prompts directory: blogsai/config/defaults/prompts -> defaults/prompts")
         
-        # Also include individual files as backup (for debugging)
-        for prompt_file in prompt_files:
-            relative_source = f'blogsai/config/defaults/prompts/{prompt_file.name}'
-            destination = f'_internal/defaults/prompts/{prompt_file.name}'
-            print(f"PyInstaller: Adding individual prompt file: {relative_source} -> {destination}")
-            data_dirs.append((relative_source, destination))
     else:
         print(f"PyInstaller: WARNING - Prompts directory not found: blogsai/config/defaults/prompts")
 
