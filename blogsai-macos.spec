@@ -37,64 +37,29 @@ print(f"PyInstaller: Total data files to include: {len(data_dirs)}")
 for src, dest in data_dirs:
     print(f"PyInstaller: {src} -> {dest}")
 
-# macOS-specific hidden imports with comprehensive PyQt5 coverage
+# macOS-specific hidden imports - use detailed approach like main blogsai.spec
 hiddenimports = [
-    # PyQt5 - comprehensive manual approach
-    'PyQt5',
+    # PyQt5 components
     'PyQt5.QtCore',
-    'PyQt5.QtGui', 
+    'PyQt5.QtGui',
     'PyQt5.QtWidgets',
     'PyQt5.QtPrintSupport',
-    'PyQt5.sip',
     
-    # Force include all PyQt5.QtWidgets classes used in the app
-    'PyQt5.QtWidgets.QWidget',
-    'PyQt5.QtWidgets.QMainWindow',
-    'PyQt5.QtWidgets.QApplication',
-    'PyQt5.QtWidgets.QVBoxLayout',
-    'PyQt5.QtWidgets.QHBoxLayout',
-    'PyQt5.QtWidgets.QGridLayout',
-    'PyQt5.QtWidgets.QTabWidget',
-    'PyQt5.QtWidgets.QLabel',
-    'PyQt5.QtWidgets.QPushButton',
-    'PyQt5.QtWidgets.QTextEdit',
-    'PyQt5.QtWidgets.QLineEdit',
-    'PyQt5.QtWidgets.QComboBox',
-    'PyQt5.QtWidgets.QCheckBox',
-    'PyQt5.QtWidgets.QProgressBar',
-    'PyQt5.QtWidgets.QMessageBox',
-    'PyQt5.QtWidgets.QDialog',
-    'PyQt5.QtWidgets.QFileDialog',
-    'PyQt5.QtWidgets.QTableWidget',
-    'PyQt5.QtWidgets.QTableWidgetItem',
-    'PyQt5.QtWidgets.QHeaderView',
-    'PyQt5.QtWidgets.QSplitter',
-    'PyQt5.QtWidgets.QScrollArea',
-    'PyQt5.QtWidgets.QFrame',
-    'PyQt5.QtWidgets.QGroupBox',
-    'PyQt5.QtWidgets.QSpacerItem',
-    'PyQt5.QtWidgets.QSizePolicy',
-    
-    # PyQt5 Core classes
-    'PyQt5.QtCore.QObject',
-    'PyQt5.QtCore.QThread',
-    'PyQt5.QtCore.QTimer',
-    'PyQt5.QtCore.pyqtSignal',
-    'PyQt5.QtCore.pyqtSlot',
-    'PyQt5.QtCore.Qt',
-    
-    # PyQt5 GUI classes
-    'PyQt5.QtGui.QIcon',
-    'PyQt5.QtGui.QPixmap',
-    'PyQt5.QtGui.QFont',
-    'PyQt5.QtGui.QPalette',
-    'PyQt5.QtGui.QColor',
-    
-    # GUI components
+    # GUI components - be more specific like main spec
     'blogsai.gui.main_window',
-    'blogsai.gui.tabs',
-    'blogsai.gui.dialogs',
-    'blogsai.gui.workers',
+    'blogsai.gui.setup_dialog',
+    'blogsai.gui.api_key_dialog',
+    'blogsai.gui.tabs.analysis_tab',
+    'blogsai.gui.tabs.dashboard_tab',
+    'blogsai.gui.tabs.collection_tab',
+    'blogsai.gui.tabs.reports_tab',
+    'blogsai.gui.workers.analysis_worker',
+    'blogsai.gui.workers.base_worker',
+    'blogsai.gui.workers.scraping_worker',
+    'blogsai.gui.dialogs.first_time_setup_dialog',
+    'blogsai.gui.dialogs.article_dialog',
+    'blogsai.gui.dialogs.manual_article_dialog',
+    'blogsai.gui.dialogs.report_dialog',
     
     # Core modules
     'blogsai.core',
@@ -175,8 +140,8 @@ a = Analysis(
     pathex=[str(project_root)],
     binaries=[],
     datas=data_dirs,
-    # Include the entire blogsai package and PyQt5
-    packages=['blogsai', 'PyQt5'],
+    # Include the entire blogsai package - don't include PyQt5 as package
+    packages=['blogsai'],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

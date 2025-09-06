@@ -57,6 +57,36 @@ print(f"PyInstaller: Total data files to include: {len(data_dirs)}")
 for src, dest in data_dirs:
     print(f"PyInstaller: {src} -> {dest}")
 
+# Try to collect PyQt5 comprehensively
+try:
+    from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_dynamic_libs
+    print("PyInstaller: Attempting comprehensive PyQt5 collection...")
+    
+    # Collect everything from PyQt5
+    pyqt5_datas, pyqt5_binaries, pyqt5_hiddenimports = collect_all('PyQt5')
+    print(f"PyInstaller: Collected {len(pyqt5_datas)} PyQt5 data files")
+    print(f"PyInstaller: Collected {len(pyqt5_binaries)} PyQt5 binaries") 
+    print(f"PyInstaller: Collected {len(pyqt5_hiddenimports)} PyQt5 hidden imports")
+    
+    # Also collect specific PyQt5 modules
+    pyqt5_core_datas, pyqt5_core_binaries, pyqt5_core_hiddenimports = collect_all('PyQt5.QtCore')
+    pyqt5_widgets_datas, pyqt5_widgets_binaries, pyqt5_widgets_hiddenimports = collect_all('PyQt5.QtWidgets')
+    pyqt5_gui_datas, pyqt5_gui_binaries, pyqt5_gui_hiddenimports = collect_all('PyQt5.QtGui')
+    
+    # Combine all collections
+    all_pyqt5_datas = pyqt5_datas + pyqt5_core_datas + pyqt5_widgets_datas + pyqt5_gui_datas
+    all_pyqt5_binaries = pyqt5_binaries + pyqt5_core_binaries + pyqt5_widgets_binaries + pyqt5_gui_binaries
+    all_pyqt5_hiddenimports = list(set(pyqt5_hiddenimports + pyqt5_core_hiddenimports + pyqt5_widgets_hiddenimports + pyqt5_gui_hiddenimports))
+    
+    print(f"PyInstaller: Total PyQt5 collection: {len(all_pyqt5_datas)} datas, {len(all_pyqt5_binaries)} binaries, {len(all_pyqt5_hiddenimports)} imports")
+    
+except Exception as e:
+    print(f"PyInstaller: PyQt5 auto-collection failed: {e}")
+    print("PyInstaller: Falling back to manual PyQt5 imports")
+    all_pyqt5_datas = []
+    all_pyqt5_binaries = []
+    all_pyqt5_hiddenimports = []
+
 # Windows-specific hidden imports with comprehensive PyQt5 coverage
 hiddenimports = [
     # PyQt5 - use comprehensive manual approach since collect_all isn't working

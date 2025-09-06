@@ -153,9 +153,11 @@ def main():
     # Step 4: Select platform-specific spec file
     current_platform = platform.system().lower()
     if current_platform == 'windows':
+        print('Using windos spec file')
         spec_file = 'blogsai-windows.spec'
     elif current_platform == 'darwin':
         spec_file = 'blogsai-macos.spec'
+        print('Using macos spec file')
     else:
         # Linux or other - use the original spec file
         spec_file = 'blogsai.spec'

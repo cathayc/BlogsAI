@@ -1,3 +1,4 @@
+import os
 import click
 from datetime import datetime, timedelta
 from ..core import init_db, get_db, config
