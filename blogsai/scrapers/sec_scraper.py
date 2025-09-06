@@ -84,6 +84,25 @@ class SECScraper(BaseScraper):
 
         return self.scrape_date_range(start_date, end_date)
 
+    def _check_rate_limited(self, page_source):
+        """Check if the page contains a rate limit or access restriction message."""
+        rate_limit_indicators = [
+            "Request Rate Threshold Exceeded",
+            "rate threshold exceeded",
+            "Rate limit exceeded",
+            "Too many requests",
+            "Access to our sites must comply",
+            "Reference ID:",  # SEC-specific error reference
+            "www.sec.gov/developer",  # SEC developer page reference
+            "Fair Access guidelines"
+        ]
+        
+        for indicator in rate_limit_indicators:
+            if indicator in page_source:
+                logger.warning(f"Rate limit detected: '{indicator}' found in page")
+                return True
+        return False
+
     def scrape_date_range(self, start_date, end_date, progress_callback=None):
         """Scrape SEC press releases for a specific date range using year/month filtering."""
         logger.debug(
@@ -187,8 +206,17 @@ class SECScraper(BaseScraper):
             )
 
         except Exception as e:
-            logger.error(f"Error scraping SEC for {year}-{month:02d}: {e}")
-            return []
+            logger.warning(f"Direct URL approach failed for SEC {year}-{month:02d}: {e}")
+            
+            # Try fallback method with longer delays
+            try:
+                logger.info(f"Trying fallback method with delays for SEC {year}-{month:02d}")
+                return self._scrape_with_delays(
+                    year, month, start_date, end_date, progress_callback
+                )
+            except Exception as e2:
+                logger.error(f"All methods failed for SEC {year}-{month:02d}: {e2}")
+                return []
 
     def _scrape_direct_url(
         self, year, month, start_date, end_date, progress_callback=None
@@ -204,6 +232,10 @@ class SECScraper(BaseScraper):
             logger.info(f"Using direct URL approach: {filtered_url}")
             self.driver.get(filtered_url)
             time.sleep(5)  # Wait for page to load
+            
+            # Check for rate limiting on initial page load
+            if self._check_rate_limited(self.driver.page_source):
+                raise Exception("Rate limit detected on initial SEC page load - triggering fallback")
 
             # Now scrape the filtered results
             page = 0
@@ -214,6 +246,10 @@ class SECScraper(BaseScraper):
                     logger.info(f"Loading page {page + 1}: {paginated_url}")
                     self.driver.get(paginated_url)
                     time.sleep(3)
+                    
+                    # Check for rate limiting on paginated pages
+                    if self._check_rate_limited(self.driver.page_source):
+                        raise Exception(f"Rate limit detected on SEC page {page + 1} - triggering fallback")
 
                 # Parse the page
                 soup = self._parse_html(self.driver.page_source)

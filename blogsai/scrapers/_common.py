@@ -48,9 +48,12 @@ def setup_chrome_options():
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-images")
     chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
     # Note: remote-debugging-port is set dynamically in initialize_chrome_driver()
     chrome_options.add_argument(
-        "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
     )
     
     # Add macOS-specific Chrome binary path if needed
@@ -114,9 +117,33 @@ def initialize_chrome_driver(scraper_name: str):
     
     # macOS: Use multiple fallback strategies for compatibility
     elif platform.system() == "Darwin":
-        # Strategy 1: Try basic ChromeDriver with minimal options
+        # Strategy 1: Try older stable ChromeDriver version first
         try:
-            logger.info(f"macOS Strategy 1: Basic ChromeDriver for {scraper_name}")
+            logger.info(f"macOS Strategy 1: Using stable ChromeDriver 130.x for {scraper_name}")
+            
+            # Force use of older, stable ChromeDriver version
+            stable_chromedriver_path = os.path.expanduser("~/.wdm/drivers/chromedriver/mac64/130.0.6723.116/chromedriver-mac-arm64/chromedriver")
+            
+            if os.path.exists(stable_chromedriver_path):
+                basic_options = Options()
+                basic_options.add_argument("--headless")
+                basic_options.add_argument("--no-sandbox")
+                basic_options.add_argument("--disable-dev-shm-usage")
+                basic_options.add_argument("--disable-gpu")
+                
+                service = Service(stable_chromedriver_path)
+                driver = webdriver.Chrome(service=service, options=basic_options)
+                logger.info(f"macOS Strategy 1: Stable ChromeDriver 130.x initialized successfully for {scraper_name}")
+                return driver
+            else:
+                logger.warning(f"Stable ChromeDriver not found at {stable_chromedriver_path}")
+                
+        except Exception as e1:
+            logger.warning(f"macOS Strategy 1 (stable ChromeDriver 130.x) failed for {scraper_name}: {e1}")
+        
+        # Strategy 1b: Try basic ChromeDriver with WebDriver Manager as fallback
+        try:
+            logger.info(f"macOS Strategy 1b: WebDriver Manager ChromeDriver for {scraper_name}")
             
             basic_options = Options()
             basic_options.add_argument("--headless")
@@ -124,19 +151,59 @@ def initialize_chrome_driver(scraper_name: str):
             basic_options.add_argument("--disable-dev-shm-usage")
             basic_options.add_argument("--disable-gpu")
             
+            # Add unique debugging port for each scraper to avoid conflicts
+            port_map = {
+                "Department of Justice": 9222,
+                "Securities and Exchange Commission": 9223, 
+                "Commodity Futures Trading Commission": 9224
+            }
+            debug_port = port_map.get(scraper_name, 9222 + random.randint(10, 99))
+            basic_options.add_argument(f"--remote-debugging-port={debug_port}")
+            logger.info(f"Using debug port {debug_port} for {scraper_name}")
+            
             os.environ['WDM_LOG_LEVEL'] = '0'
             service = Service(ChromeDriverManager().install())
             
             driver = webdriver.Chrome(service=service, options=basic_options)
-            logger.info(f"macOS Strategy 1: Basic ChromeDriver initialized successfully for {scraper_name}")
+            logger.info(f"macOS Strategy 1b: WebDriver Manager ChromeDriver initialized successfully for {scraper_name}")
             return driver
             
-        except Exception as e1:
-            logger.warning(f"macOS Strategy 1 (basic ChromeDriver) failed for {scraper_name}: {e1}")
+        except Exception as e1b:
+            logger.warning(f"macOS Strategy 1b (WebDriver Manager ChromeDriver) failed for {scraper_name}: {e1b}")
         
-        # Strategy 2: Try with system ChromeDriver (Homebrew installation) 
+        # Strategy 2: Try with WebDriver Manager (auto-downloads compatible version)
         try:
-            logger.info(f"macOS Strategy 2: System ChromeDriver for {scraper_name}")
+            logger.info(f"macOS Strategy 2: Auto-compatible ChromeDriver for {scraper_name}")
+            
+            basic_options = Options()
+            basic_options.add_argument("--headless")
+            basic_options.add_argument("--no-sandbox")
+            basic_options.add_argument("--disable-dev-shm-usage")
+            basic_options.add_argument("--disable-gpu")
+            
+            # Add unique debugging port for each scraper to avoid conflicts
+            port_map = {
+                "Department of Justice": 9225,  # Different ports from Strategy 1b
+                "Securities and Exchange Commission": 9226, 
+                "Commodity Futures Trading Commission": 9227
+            }
+            debug_port = port_map.get(scraper_name, 9225 + random.randint(10, 99))
+            basic_options.add_argument(f"--remote-debugging-port={debug_port}")
+            logger.info(f"Using debug port {debug_port} for {scraper_name} (Strategy 2)")
+            
+            # Use WebDriver Manager to automatically download compatible ChromeDriver
+            os.environ['WDM_LOG_LEVEL'] = '0'  # Suppress verbose logs
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=basic_options)
+            logger.info(f"macOS Strategy 2: Auto-compatible ChromeDriver initialized successfully for {scraper_name}")
+            return driver
+                
+        except Exception as e2:
+            logger.warning(f"macOS Strategy 2 (auto-compatible ChromeDriver) failed for {scraper_name}: {e2}")
+        
+        # Strategy 3: Try with system ChromeDriver (Homebrew installation) as last resort
+        try:
+            logger.info(f"macOS Strategy 3: System ChromeDriver for {scraper_name}")
             
             chromedriver_paths = [
                 "/opt/homebrew/bin/chromedriver",  # Apple Silicon Homebrew
@@ -157,15 +224,25 @@ def initialize_chrome_driver(scraper_name: str):
                 basic_options.add_argument("--no-sandbox")
                 basic_options.add_argument("--disable-dev-shm-usage")
                 
+                # Add unique debugging port for each scraper to avoid conflicts
+                port_map = {
+                    "Department of Justice": 9228,  # Different ports from other strategies
+                    "Securities and Exchange Commission": 9229, 
+                    "Commodity Futures Trading Commission": 9230
+                }
+                debug_port = port_map.get(scraper_name, 9228 + random.randint(10, 99))
+                basic_options.add_argument(f"--remote-debugging-port={debug_port}")
+                logger.info(f"Using debug port {debug_port} for {scraper_name} (Strategy 3)")
+                
                 service = Service(system_chromedriver)
                 driver = webdriver.Chrome(service=service, options=basic_options)
-                logger.info(f"macOS Strategy 2: System ChromeDriver initialized successfully for {scraper_name}")
+                logger.info(f"macOS Strategy 3: System ChromeDriver initialized successfully for {scraper_name}")
                 return driver
             else:
                 logger.info("No system ChromeDriver found")
                 
-        except Exception as e2:
-            logger.warning(f"macOS Strategy 2 failed for {scraper_name}: {e2}")
+        except Exception as e3:
+            logger.warning(f"macOS Strategy 3 failed for {scraper_name}: {e3}")
         
         logger.error(f"All macOS ChromeDriver strategies failed for {scraper_name}")
         return None

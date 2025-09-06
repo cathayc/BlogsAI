@@ -28,6 +28,7 @@ if BuildPath('blogsai/config/defaults').exists():
         data_dirs.append(('blogsai/config/defaults/settings.yaml', '_internal/defaults/settings.yaml'))
     if BuildPath('blogsai/config/defaults/sources.yaml').exists():
         data_dirs.append(('blogsai/config/defaults/sources.yaml', '_internal/defaults/sources.yaml'))
+    # we need to put prompts directory here too if it doesn't exist
     
     # Include all prompt files individually to ensure they get bundled properly
     if BuildPath('blogsai/config/defaults/prompts').exists():

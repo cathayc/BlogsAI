@@ -108,9 +108,9 @@ class ScraperManager:
                     logger.info(f"Initializing {name} scraper...")
                     self.scrapers[name] = classes[name](config, self.config.scraping)
                     
-                    # Add small delay between scraper initializations to prevent conflicts
+                    # Add delay between scraper initializations to prevent conflicts
                     if i < len(self.config.sources.get("agencies", {})) - 1:  # Not the last one
-                        time.sleep(1.0)  # 1 second delay
+                        time.sleep(2.0)  # 2 second delay to prevent ChromeDriver conflicts
                         
                 except Exception as e:
                     logger.error(f"Failed to initialize {name} scraper: {e}")

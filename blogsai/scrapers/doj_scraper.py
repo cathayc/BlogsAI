@@ -84,6 +84,23 @@ class DOJScraper(BaseScraper):
         
         return self.scrape_date_range(start_date, end_date)
     
+    def _check_access_denied(self, page_source):
+        """Check if the page contains an Access Denied message."""
+        access_denied_indicators = [
+            "Access Denied",
+            "access denied", 
+            "You don't have permission",
+            "403 Forbidden",
+            "Reference #18.",  # DOJ-specific error reference
+            "errors.edgesuite.net"
+        ]
+        
+        for indicator in access_denied_indicators:
+            if indicator in page_source:
+                logger.warning(f"Access denied detected: '{indicator}' found in page")
+                return True
+        return False
+
     def scrape_date_range(self, start_date, end_date, progress_callback=None):
         """Scrape DOJ press releases for a specific date range using date filtering."""
         logger.debug(
@@ -201,6 +218,10 @@ class DOJScraper(BaseScraper):
                 self.driver.get(current_url)
                 time.sleep(3)  # Wait for page to load
                 
+                # Check for access denied after loading each page
+                if self._check_access_denied(self.driver.page_source):
+                    raise Exception(f"Access denied detected on page {page + 1} - triggering fallback")
+                
                 soup = self._parse_html(self.driver.page_source)
                 items = soup.find_all("div", class_="views-row") or soup.find_all(
                     "article", class_="node"
@@ -240,8 +261,16 @@ class DOJScraper(BaseScraper):
         page = 0
         
         # Parse date objects for comparison
-        start_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
-        end_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+        start_obj = (
+            start_date
+            if hasattr(start_date, "year")
+            else datetime.strptime(str(start_date), "%Y-%m-%d").date()
+        )
+        end_obj = (
+            end_date
+            if hasattr(end_date, "year")
+            else datetime.strptime(str(end_date), "%Y-%m-%d").date()
+        )
         
         logger.info("Using pagination fallback method...")
         
@@ -250,6 +279,10 @@ class DOJScraper(BaseScraper):
         logger.info(f"Loading initial page: {press_url}")
         self.driver.get(press_url)
         time.sleep(3)
+        
+        # Check for access denied on initial fallback page load
+        if self._check_access_denied(self.driver.page_source):
+            raise Exception("Access denied detected on initial fallback page load - no more fallback options")
         
         while True:
             try:
@@ -262,6 +295,10 @@ class DOJScraper(BaseScraper):
                 logger.info(f"Loading fallback page {page + 1}: {current_url}")
                 self.driver.get(current_url)
                 time.sleep(3)  # Wait for page to load
+                
+                # Check for access denied after loading each fallback page
+                if self._check_access_denied(self.driver.page_source):
+                    raise Exception(f"Access denied detected on fallback page {page + 1} - no more fallback options")
                 
                 # Get page source and parse with BeautifulSoup
                 soup = self._parse_html(self.driver.page_source)
