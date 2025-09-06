@@ -31,7 +31,7 @@ class ErrorDialogManager:
         self._app = None
         self._parent_widget = None
 
-    def set_parent_widget(self, parent: Optional[QWidget] = None):
+    def set_parent_widget(self, parent: Optional["QWidget"] = None):
         """Set the parent widget for dialogs."""
         self._parent_widget = parent
 
@@ -259,7 +259,7 @@ def get_error_manager() -> ErrorDialogManager:
     return _error_manager
 
 
-def set_error_dialog_parent(parent: Optional[QWidget] = None):
+def set_error_dialog_parent(parent: Optional["QWidget"] = None):
     """Set the parent widget for error dialogs."""
     get_error_manager().set_parent_widget(parent)
 
