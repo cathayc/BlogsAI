@@ -251,8 +251,8 @@ class AppDirectories:
 
             # Try the locations defined in the build script
             possible_paths = [
-                bundle_dir / "defaults",                # Primary: matches updated blogsai.spec
-                bundle_dir / "_internal" / "defaults",  # Secondary: legacy _internal location
+                bundle_dir / "_internal" / "defaults",  # Primary: PyInstaller puts data files in _internal
+                bundle_dir / "defaults",                # Secondary: direct location
                 bundle_dir / "_internal" / "config",    # Tertiary: legacy config location
                 bundle_dir / "config",                  # Fallback location
             ]
@@ -266,7 +266,7 @@ class AppDirectories:
                     return path
 
             # If none found, return the expected path for error reporting
-            return bundle_dir / "defaults"
+            return bundle_dir / "_internal" / "defaults"
         else:
             # Running from source - use the defaults directory
             return Path(__file__).parent / "defaults"

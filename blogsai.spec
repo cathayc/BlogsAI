@@ -36,7 +36,7 @@ if BuildPath('blogsai/config/defaults').exists():
         prompt_files = list(prompts_dir.glob('*.txt'))
         print(f"PyInstaller: Found {len(prompt_files)} prompt files in {prompts_dir}")
         
-        # Include each prompt file individually
+        # Include each prompt file individually (PyInstaller will put them in _internal automatically)
         for prompt_file in prompt_files:
             relative_source = f'blogsai/config/defaults/prompts/{prompt_file.name}'
             destination = f'defaults/prompts/{prompt_file.name}'
@@ -45,6 +45,8 @@ if BuildPath('blogsai/config/defaults').exists():
         
     else:
         print(f"PyInstaller: WARNING - Prompts directory not found: blogsai/config/defaults/prompts")
+
+# Test completed - prompts are now successfully bundled using Tree approach
 
 # DO NOT include runtime data:
 # - No database files (*.db)
@@ -84,6 +86,16 @@ excludes = [
     '_multiprocessing',  # Complex FFI that can cause issues
     'multiprocessing.dummy',  # Threading conflicts
 ]
+
+# Create Tree objects for data directories
+from PyInstaller.utils.hooks import collect_data_files
+
+# Try using Tree for better data file handling
+prompts_tree = None
+if BuildPath('blogsai/config/defaults/prompts').exists():
+    from PyInstaller.building.datastruct import Tree
+    prompts_tree = Tree('blogsai/config/defaults/prompts', prefix='defaults/prompts', excludes=[])
+    print(f"PyInstaller: Created Tree for prompts directory")
 
 a = Analysis(
     ['standalone_app_new.py'],
@@ -355,11 +367,20 @@ else:
 
 # Only create COLLECT for non-Windows (onedir mode)
 if not IS_WINDOWS:
-    coll = COLLECT(
+    collect_items = [
         exe,
         a.binaries,
         a.zipfiles,
         a.datas,
+    ]
+    
+    # Add prompts tree if it exists
+    if prompts_tree:
+        collect_items.append(prompts_tree)
+        print(f"PyInstaller: Adding prompts tree to COLLECT")
+    
+    coll = COLLECT(
+        *collect_items,
         strip=False,
         upx=False,
         upx_exclude=[],

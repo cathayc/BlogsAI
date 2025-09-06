@@ -177,7 +177,7 @@ class FirstTimeSetupDialog(QDialog):
 
         status_text = QTextEdit()
         status_text.setReadOnly(True)
-        status_text.setMaximumHeight(200)
+        status_text.setMaximumHeight(120)
         status_text.setStyleSheet("QTextEdit { background-color: #f5f5f5; }")
 
         # Build status text with better formatting
