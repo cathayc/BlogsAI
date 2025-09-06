@@ -304,6 +304,18 @@ class FirstTimeSetupDialog(QDialog):
             self.selected_config_dir = self.config_dir
             self.selected_data_dir = self.data_dir
 
+            api_status = 'Configured' if self.api_key else 'Not configured (can be added later)'
+            QMessageBox.information(
+                self,
+                "Setup Complete",
+                "BlogsAI has been configured successfully!\n\n"
+                f"Configuration: {self.config_dir}\n"
+                f"Data: {self.data_dir}\n"
+                f"API Key: {api_status}",
+            )
+
+            self.accept()
+
         except Exception as e:
             QMessageBox.critical(
                 self, "Setup Error", f"Failed to complete setup:\n{str(e)}"
