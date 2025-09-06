@@ -57,13 +57,15 @@ print(f"PyInstaller: Total data files to include: {len(data_dirs)}")
 for src, dest in data_dirs:
     print(f"PyInstaller: {src} -> {dest}")
 
+# Collect all PyQt5 components automatically
+from PyInstaller.utils.hooks import collect_all
+pyqt5_datas, pyqt5_binaries, pyqt5_hiddenimports = collect_all('PyQt5')
+print(f"PyInstaller: Auto-collected {len(pyqt5_hiddenimports)} PyQt5 hidden imports")
+
 # Windows-specific hidden imports
 hiddenimports = [
-    # PyQt5 components
-    'PyQt5.QtCore',
-    'PyQt5.QtGui', 
-    'PyQt5.QtWidgets',
-    'PyQt5.QtPrintSupport',
+    # Include all auto-collected PyQt5 imports
+] + pyqt5_hiddenimports + [
     
     # GUI components
     'blogsai.gui.main_window',
@@ -150,8 +152,8 @@ excludes = [
 a = Analysis(
     ['standalone_app_new.py'],
     pathex=[str(project_root)],
-    binaries=[],
-    datas=data_dirs,
+    binaries=[] + pyqt5_binaries,
+    datas=data_dirs + pyqt5_datas,
     # Include the entire blogsai package
     packages=['blogsai'],
     hiddenimports=hiddenimports,
