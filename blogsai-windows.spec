@@ -57,15 +57,58 @@ print(f"PyInstaller: Total data files to include: {len(data_dirs)}")
 for src, dest in data_dirs:
     print(f"PyInstaller: {src} -> {dest}")
 
-# Collect all PyQt5 components automatically
-from PyInstaller.utils.hooks import collect_all
-pyqt5_datas, pyqt5_binaries, pyqt5_hiddenimports = collect_all('PyQt5')
-print(f"PyInstaller: Auto-collected {len(pyqt5_hiddenimports)} PyQt5 hidden imports")
-
-# Windows-specific hidden imports
+# Windows-specific hidden imports with comprehensive PyQt5 coverage
 hiddenimports = [
-    # Include all auto-collected PyQt5 imports
-] + pyqt5_hiddenimports + [
+    # PyQt5 - use comprehensive manual approach since collect_all isn't working
+    'PyQt5',
+    'PyQt5.QtCore',
+    'PyQt5.QtGui', 
+    'PyQt5.QtWidgets',
+    'PyQt5.QtPrintSupport',
+    'PyQt5.sip',
+    
+    # Force include all PyQt5.QtWidgets classes used in the app
+    'PyQt5.QtWidgets.QWidget',
+    'PyQt5.QtWidgets.QMainWindow',
+    'PyQt5.QtWidgets.QApplication',
+    'PyQt5.QtWidgets.QVBoxLayout',
+    'PyQt5.QtWidgets.QHBoxLayout',
+    'PyQt5.QtWidgets.QGridLayout',
+    'PyQt5.QtWidgets.QTabWidget',
+    'PyQt5.QtWidgets.QLabel',
+    'PyQt5.QtWidgets.QPushButton',
+    'PyQt5.QtWidgets.QTextEdit',
+    'PyQt5.QtWidgets.QLineEdit',
+    'PyQt5.QtWidgets.QComboBox',
+    'PyQt5.QtWidgets.QCheckBox',
+    'PyQt5.QtWidgets.QProgressBar',
+    'PyQt5.QtWidgets.QMessageBox',
+    'PyQt5.QtWidgets.QDialog',
+    'PyQt5.QtWidgets.QFileDialog',
+    'PyQt5.QtWidgets.QTableWidget',
+    'PyQt5.QtWidgets.QTableWidgetItem',
+    'PyQt5.QtWidgets.QHeaderView',
+    'PyQt5.QtWidgets.QSplitter',
+    'PyQt5.QtWidgets.QScrollArea',
+    'PyQt5.QtWidgets.QFrame',
+    'PyQt5.QtWidgets.QGroupBox',
+    'PyQt5.QtWidgets.QSpacerItem',
+    'PyQt5.QtWidgets.QSizePolicy',
+    
+    # PyQt5 Core classes
+    'PyQt5.QtCore.QObject',
+    'PyQt5.QtCore.QThread',
+    'PyQt5.QtCore.QTimer',
+    'PyQt5.QtCore.pyqtSignal',
+    'PyQt5.QtCore.pyqtSlot',
+    'PyQt5.QtCore.Qt',
+    
+    # PyQt5 GUI classes
+    'PyQt5.QtGui.QIcon',
+    'PyQt5.QtGui.QPixmap',
+    'PyQt5.QtGui.QFont',
+    'PyQt5.QtGui.QPalette',
+    'PyQt5.QtGui.QColor',
     
     # GUI components
     'blogsai.gui.main_window',
@@ -152,10 +195,10 @@ excludes = [
 a = Analysis(
     ['standalone_app_new.py'],
     pathex=[str(project_root)],
-    binaries=[] + pyqt5_binaries,
-    datas=data_dirs + pyqt5_datas,
-    # Include the entire blogsai package
-    packages=['blogsai'],
+    binaries=[],
+    datas=data_dirs,
+    # Include the entire blogsai package and PyQt5
+    packages=['blogsai', 'PyQt5'],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
