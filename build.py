@@ -150,21 +150,12 @@ def main():
     # Step 3: Clean production config (force first-time setup)
     clean_production_config()
     
-    # Step 4: Select platform-specific spec file
-    current_platform = platform.system().lower()
-    if current_platform == 'windows':
-        print('Using windos spec file')
-        spec_file = 'blogsai-windows.spec'
-    elif current_platform == 'darwin':
-        spec_file = 'blogsai-macos.spec'
-        print('Using macos spec file')
-    else:
-        # Linux or other - use the original spec file
-        spec_file = 'blogsai.spec'
+    # Step 4: Use unified spec file for all platforms
+    spec_file = 'blogsai.spec'
+    print(f'Using unified spec file: {spec_file}')
     
     if not Path(spec_file).exists():
         print(f"ERROR: {spec_file} file not found!")
-        print("The platform-specific spec file should be committed to the repository.")
         sys.exit(1)
     
     print(f"Using platform-specific PyInstaller spec file: {spec_file}")
