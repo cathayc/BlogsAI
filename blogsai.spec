@@ -1,95 +1,21 @@
 # -*- mode: python ; coding: utf-8 -*-
-# 
-# SIMPLIFIED SPEC FILE - FOR REFERENCE ONLY
-# The main build process now uses command line --add-data options in build.py
-# This file is kept for reference and potential fallback usage
-#
 
-import sys
-import platform
-from pathlib import Path
 
-# Project root
-project_root = Path.cwd()
-
-block_cipher = None
-
-# NOTE: Data files are now handled via command line --add-data options in build.py
-# This spec file no longer includes complex data handling logic
-
-# Exclude unused Python stdlib modules to reduce bundle size
-excludes = [
-    # Unused GUI frameworks
-    'tkinter', 'turtle', 'curses',
-    # Development/testing modules  
-    'unittest', 'doctest', 'pdb', 'profile', 'cProfile', 'pstats',
-    # Build/packaging tools
-    'distutils', 'setuptools', 'pip', 'ensurepip',
-    # Unused audio/multimedia
-    'audioop', 'wave', 'chunk', 'sunau', 'aifc',
-    # Large scientific libraries (if not used)
-    'numpy', 'scipy', 'matplotlib', 'pandas',
-    # Removed unused dependencies
-    'feedparser', 'schedule', 'sgmllib3k',
-    # Alternative build tools (not needed at runtime)
-    'cx_Freeze', 'nuitka', 'dmgbuild', 'ds_store', 'mac_alias',
-    # Additional unused modules
-    'antigravity', 'this', '__hello__', '__phello__',
-    'idlelib', 'lib2to3', 'turtledemo',
-    # Modules that can cause ABI issues
-    '_decimal',
-    '_multiprocessing',
-    'multiprocessing.dummy',
-]
-
-# Basic Analysis configuration - data files handled by build.py
 a = Analysis(
     ['standalone_app_new.py'],
-    pathex=[str(project_root)],
+    pathex=[],
     binaries=[],
-    datas=[],  # Data files handled by command line --add-data
-    packages=['blogsai'],
-    hiddenimports=[
-        # Core PyQt5 components
-        'PyQt5.QtCore',
-        'PyQt5.QtGui', 
-        'PyQt5.QtWidgets',
-        'PyQt5.QtPrintSupport',
-        
-        # Essential blogsai modules
-        'blogsai.gui.main_window',
-        'blogsai.config.config',
-        'blogsai.config.distribution',
-        'blogsai.database.database',
-        'blogsai.scrapers.manager',
-        'blogsai.analysis.analyzer',
-        'blogsai.reporting.generator',
-        
-        # External dependencies
-        'sqlite3',
-        'sqlalchemy',
-        'openai',
-        'yaml',
-        'keyring',
-        'cryptography',
-        'requests',
-        'beautifulsoup4',
-        'selenium',
-        'jinja2',
-        'reportlab',
-    ],
-    hookspath=['hooks'],
+    datas=[('data/config', 'config'), ('assets', 'assets'), ('blogsai/config/defaults/settings.yaml', 'defaults/settings.yaml'), ('blogsai/config/defaults/sources.yaml', 'defaults/sources.yaml'), ('blogsai/config/defaults/prompts', 'defaults/prompts')],
+    hiddenimports=['PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets', 'PyQt5.QtPrintSupport', 'blogsai.gui.main_window', 'blogsai.gui.setup_dialog', 'blogsai.gui.api_key_dialog', 'blogsai.gui.tabs.analysis_tab', 'blogsai.gui.tabs.dashboard_tab', 'blogsai.gui.tabs.collection_tab', 'blogsai.gui.tabs.reports_tab', 'blogsai.gui.workers.analysis_worker', 'blogsai.gui.workers.base_worker', 'blogsai.gui.workers.scraping_worker', 'blogsai.gui.dialogs.first_time_setup_dialog', 'blogsai.gui.dialogs.article_dialog', 'blogsai.gui.dialogs.manual_article_dialog', 'blogsai.gui.dialogs.report_dialog', 'blogsai.core', 'blogsai.config.config', 'blogsai.config.distribution', 'blogsai.config.env_manager', 'blogsai.config.credential_manager', 'blogsai.config.app_dirs', 'blogsai.scrapers.manager', 'blogsai.scrapers.base', 'blogsai.scrapers.doj_scraper', 'blogsai.scrapers.sec_scraper', 'blogsai.scrapers.cftc_scraper', 'blogsai.scrapers.url_scraper', 'blogsai.analysis.analyzer', 'blogsai.analysis.openai_client', 'blogsai.analysis.verifier', 'blogsai.database.models', 'blogsai.database.database', 'blogsai.reporting.generator', 'blogsai.utils.logging_config', 'blogsai.utils.error_handling', 'blogsai.utils.database_helpers', 'blogsai.utils.timezone_utils', 'sqlite3', 'sqlalchemy', 'sqlalchemy.dialects.sqlite', 'openai', 'pydantic', 'yaml', 'pytz', 'dotenv', 'keyring', 'keyring.backends', 'keyring.backends.macOS', 'keyring.backends.Windows', 'keyring.backends.SecretService', 'keyring.backends.chainer', 'keyring.backends.fail', 'keyrings.alt', 'keyrings.alt.file', 'keyrings.alt.Gnome', 'keyrings.alt.Google', 'keyrings.alt.pyfs', 'cryptography', 'cryptography.fernet', 'cryptography.hazmat.primitives', 'cryptography.hazmat.primitives.kdf.pbkdf2', 'cryptography.hazmat.primitives.hashes', 'platformdirs', 'requests', 'beautifulsoup4', 'pathlib', 'json', 'base64', 'hashlib', 'getpass', 'selenium', 'selenium.webdriver', 'selenium.webdriver.chrome.options', 'selenium.webdriver.chrome.service', 'selenium.webdriver.common.by', 'selenium.webdriver.support.ui', 'selenium.webdriver.support.expected_conditions', 'selenium.common.exceptions', 'webdriver_manager', 'webdriver_manager.chrome', 'jinja2', 'reportlab', 'reportlab.lib', 'reportlab.platypus', 'markdown.extensions', 'markdown.extensions.tables', 'markdown.extensions.fenced_code', 'markdown.extensions.codehilite', 'markdown.extensions.extra', 'encodings.utf_8', 'encodings.ascii', 'encodings.cp1252', 'msvcrt', 'winreg', '_winapi', 'nt'],
+    hookspath=[],
     hooksconfig={},
     runtime_hooks=['hooks/runtime_distribution.py', 'hooks/runtime_windows_dll.py'],
-    excludes=excludes,
-    cipher=block_cipher,
+    excludes=[],
     noarchive=False,
     optimize=0,
 )
+pyz = PYZ(a.pure)
 
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-
-# Use onedir mode for all platforms (as per new approach)
 exe = EXE(
     pyz,
     a.scripts,
@@ -99,40 +25,27 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,
+    upx=True,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['assets/icon.icns'],
 )
-
 coll = COLLECT(
     exe,
     a.binaries,
-    a.zipfiles,
     a.datas,
     strip=False,
-    upx=False,
+    upx=True,
     upx_exclude=[],
     name='BlogsAI',
 )
-
-# macOS app bundle
-if sys.platform == 'darwin':
-    app = BUNDLE(
-        coll,
-        name='BlogsAI.app',
-        icon='assets/icon.icns',
-        bundle_identifier='com.blogsai.app',
-        info_plist={
-            'CFBundleName': 'BlogsAI',
-            'CFBundleDisplayName': 'BlogsAI',
-            'CFBundleVersion': '1.0.0',
-            'CFBundleShortVersionString': '1.0.0',
-            'CFBundleIdentifier': 'com.blogsai.app',
-            'NSHighResolutionCapable': True,
-            'NSRequiresAquaSystemAppearance': True,
-        },
-    )
+app = BUNDLE(
+    coll,
+    name='BlogsAI.app',
+    icon='assets/icon.icns',
+    bundle_identifier=None,
+)

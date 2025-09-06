@@ -36,19 +36,13 @@ def get_data_mappings():
             data_dirs.append((str(sources_file), 'defaults/sources.yaml'))
             print(f"PyInstaller: Adding sources.yaml")
         
-        # Always ensure prompts directory exists and include all .txt files
+        # Include the entire prompts directory to preserve structure
         prompts_dir = defaults_dir / 'prompts'
         if prompts_dir.exists():
-            # Find all .txt files in the prompts directory
-            txt_files = list(prompts_dir.glob('*.txt'))
-            print(f"PyInstaller: Found {len(txt_files)} .txt files in prompts directory")
-            
-            # Include each .txt file explicitly
-            for txt_file in txt_files:
-                source_path = str(txt_file)
-                dest_path = f'defaults/prompts/{txt_file.name}'
-                data_dirs.append((source_path, dest_path))
-                print(f"PyInstaller: Adding prompt file: {txt_file.name}")
+            # Include the entire prompts directory to ensure proper nested structure
+            # This prevents PyInstaller from creating directories instead of files
+            data_dirs.append((str(prompts_dir), 'defaults/prompts'))
+            print(f"PyInstaller: Adding entire prompts directory: {prompts_dir}")
         else:
             print(f"PyInstaller: WARNING - Prompts directory not found: {prompts_dir}")
     else:
