@@ -249,13 +249,21 @@ class AppDirectories:
             # Running as PyInstaller bundle - check multiple possible locations
             bundle_dir = Path(sys._MEIPASS)
 
-            # Try the locations defined in the build script
+            # For macOS app bundles, also check the Resources directory
+            # PyInstaller may put resources in Contents/Resources/ instead of _internal
             possible_paths = [
                 bundle_dir / "_internal" / "defaults",  # Primary: PyInstaller puts data files in _internal
                 bundle_dir / "defaults",                # Secondary: direct location
                 bundle_dir / "_internal" / "config",    # Tertiary: legacy config location
                 bundle_dir / "config",                  # Fallback location
             ]
+            
+            # macOS app bundle specific paths
+            if sys.platform == "darwin":
+                # Check if we're in a macOS app bundle structure
+                app_bundle_resources = bundle_dir.parent / "Resources" / "defaults"
+                if app_bundle_resources.exists():
+                    possible_paths.insert(0, app_bundle_resources)
 
             # Also check environment variables set by runtime hook
             if os.getenv("BLOGSAI_BUNDLED_CONFIG"):
@@ -346,7 +354,7 @@ class AppDirectories:
 
         # Copy settings.yaml if it doesn't exist or force update
         bundled_settings = bundled_config / "settings.yaml"
-        if bundled_settings.exists() and (
+        if bundled_settings.exists() and bundled_settings.is_file() and (
             not self.user_config_file.exists() or force_update
         ):
             self.user_config_file.parent.mkdir(parents=True, exist_ok=True)
@@ -355,7 +363,7 @@ class AppDirectories:
 
         # Copy sources.yaml if it doesn't exist or force update
         bundled_sources = bundled_config / "sources.yaml"
-        if bundled_sources.exists() and (
+        if bundled_sources.exists() and bundled_sources.is_file() and (
             not self.sources_config_file.exists() or force_update
         ):
             self.sources_config_file.parent.mkdir(parents=True, exist_ok=True)

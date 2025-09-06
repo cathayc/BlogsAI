@@ -81,7 +81,6 @@ class FirstTimeSetupDialog(QDialog):
 
         self.finish_btn = QPushButton("Complete Setup")
         self.finish_btn.clicked.connect(self.complete_setup)
-        self.finish_btn.setEnabled(True)  # Disabled until all fields are filled
         button_layout.addWidget(self.finish_btn)
 
         layout.addLayout(button_layout)
@@ -102,7 +101,6 @@ class FirstTimeSetupDialog(QDialog):
         path_layout = QHBoxLayout()
         self.config_path_input = QLineEdit()
         self.config_path_input.setReadOnly(True)
-        self.config_path_input.textChanged.connect(self.validate_inputs)
         path_layout.addWidget(self.config_path_input)
 
         config_browse_btn = QPushButton("Browse...")
@@ -130,7 +128,6 @@ class FirstTimeSetupDialog(QDialog):
         path_layout = QHBoxLayout()
         self.data_path_input = QLineEdit()
         self.data_path_input.setReadOnly(True)
-        self.data_path_input.textChanged.connect(self.validate_inputs)
         path_layout.addWidget(self.data_path_input)
 
         data_browse_btn = QPushButton("Browse...")
@@ -276,7 +273,6 @@ class FirstTimeSetupDialog(QDialog):
             self.api_key = dialog.get_api_key()
             self.api_key_status.setText("Configured")
             self.api_key_status.setStyleSheet("color: green;")
-            self.validate_inputs()
 
     def check_existing_api_key(self):
         """Check if API key already exists."""
@@ -293,14 +289,6 @@ class FirstTimeSetupDialog(QDialog):
             print(f"Error checking existing API key: {e}")
             pass
 
-    def validate_inputs(self):
-        """Validate all inputs and enable/disable finish button."""
-        config_valid = bool(self.config_dir and Path(self.config_dir).exists())
-        data_valid = bool(self.data_dir is not None)
-        api_key_valid = bool(self.api_key is not None)
-
-        all_valid = config_valid and data_valid and api_key_valid
-        self.finish_btn.setEnabled(all_valid)
 
     def complete_setup(self):
         """Complete the setup process."""
@@ -315,17 +303,6 @@ class FirstTimeSetupDialog(QDialog):
             # Store the selected paths for retrieval
             self.selected_config_dir = self.config_dir
             self.selected_data_dir = self.data_dir
-
-            QMessageBox.information(
-                self,
-                "Setup Complete",
-                "BlogsAI has been configured successfully!\n\n"
-                f"Configuration: {self.config_dir}\n"
-                f"Data: {self.data_dir}\n"
-                f"API Key: {'Configured' if self.api_key else 'Not configured'}",
-            )
-
-            self.accept()
 
         except Exception as e:
             QMessageBox.critical(

@@ -22,29 +22,14 @@ if BuildPath('data/config').exists() and any(BuildPath('data/config').iterdir())
 if BuildPath('assets').exists():
     data_dirs.append(('assets', 'assets'))
 
-# Include defaults directory structure with explicit subdirectories
+# Include defaults directory structure using Tree approach to avoid file/directory conflicts
+defaults_tree = None
 if BuildPath('blogsai/config/defaults').exists():
-    # Include the main config files
-    if BuildPath('blogsai/config/defaults/settings.yaml').exists():
-        data_dirs.append(('blogsai/config/defaults/settings.yaml', 'defaults/settings.yaml'))
-    if BuildPath('blogsai/config/defaults/sources.yaml').exists():
-        data_dirs.append(('blogsai/config/defaults/sources.yaml', 'defaults/sources.yaml'))
-    
-    # Include individual prompt files to ensure they are bundled correctly
-    if BuildPath('blogsai/config/defaults/prompts').exists():
-        prompts_dir = BuildPath('blogsai/config/defaults/prompts')
-        prompt_files = list(prompts_dir.glob('*.txt'))
-        print(f"PyInstaller: Found {len(prompt_files)} prompt files in {prompts_dir}")
-        
-        # Include each prompt file individually (PyInstaller will put them in _internal automatically)
-        for prompt_file in prompt_files:
-            relative_source = f'blogsai/config/defaults/prompts/{prompt_file.name}'
-            destination = f'defaults/prompts/{prompt_file.name}'
-            print(f"PyInstaller: Adding prompt file: {relative_source} -> {destination}")
-            data_dirs.append((relative_source, destination))
-        
-    else:
-        print(f"PyInstaller: WARNING - Prompts directory not found: blogsai/config/defaults/prompts")
+    from PyInstaller.building.datastruct import Tree
+    defaults_tree = Tree('blogsai/config/defaults', prefix='defaults', excludes=[])
+    print(f"PyInstaller: Created Tree for entire defaults directory")
+else:
+    print(f"PyInstaller: WARNING - Defaults directory not found: blogsai/config/defaults")
 
 # Test completed - prompts are now successfully bundled using Tree approach
 
@@ -90,12 +75,7 @@ excludes = [
 # Create Tree objects for data directories
 from PyInstaller.utils.hooks import collect_data_files
 
-# Try using Tree for better data file handling
-prompts_tree = None
-if BuildPath('blogsai/config/defaults/prompts').exists():
-    from PyInstaller.building.datastruct import Tree
-    prompts_tree = Tree('blogsai/config/defaults/prompts', prefix='defaults/prompts', excludes=[])
-    print(f"PyInstaller: Created Tree for prompts directory")
+# Tree objects are now defined above with the data directories
 
 a = Analysis(
     ['standalone_app_new.py'],
@@ -374,10 +354,10 @@ if not IS_WINDOWS:
         a.datas,
     ]
     
-    # Add prompts tree if it exists
-    if prompts_tree:
-        collect_items.append(prompts_tree)
-        print(f"PyInstaller: Adding prompts tree to COLLECT")
+    # Add defaults tree if it exists
+    if defaults_tree:
+        collect_items.append(defaults_tree)
+        print(f"PyInstaller: Adding defaults tree to COLLECT")
     
     coll = COLLECT(
         *collect_items,
