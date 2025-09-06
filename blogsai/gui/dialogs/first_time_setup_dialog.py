@@ -81,7 +81,7 @@ class FirstTimeSetupDialog(QDialog):
 
         self.finish_btn = QPushButton("Complete Setup")
         self.finish_btn.clicked.connect(self.complete_setup)
-        self.finish_btn.setEnabled(False)  # Disabled until all fields are filled
+        self.finish_btn.setEnabled(True)  # Disabled until all fields are filled
         button_layout.addWidget(self.finish_btn)
 
         layout.addLayout(button_layout)
@@ -177,7 +177,7 @@ class FirstTimeSetupDialog(QDialog):
 
         status_text = QTextEdit()
         status_text.setReadOnly(True)
-        status_text.setMaximumHeight(120)
+        status_text.setMaximumHeight(200)
         status_text.setStyleSheet("QTextEdit { background-color: #f5f5f5; }")
 
         # Build status text with better formatting
