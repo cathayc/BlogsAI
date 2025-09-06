@@ -218,6 +218,89 @@ class SECScraper(BaseScraper):
                 logger.error(f"All methods failed for SEC {year}-{month:02d}: {e2}")
                 return []
 
+    def _scrape_with_delays(
+        self, year, month, start_date, end_date, progress_callback=None
+    ):
+        """Fallback method using longer delays to avoid rate limiting."""
+        articles = []
+
+        try:
+            # Use a different approach - try the main press releases page first
+            press_url = "https://www.sec.gov/news/press-releases"
+            logger.info(f"Using fallback method with delays: {press_url}")
+            self.driver.get(press_url)
+            time.sleep(10)  # Longer initial delay
+            
+            # Check for rate limiting on fallback page load
+            if self._check_rate_limited(self.driver.page_source):
+                raise Exception("Rate limit detected on SEC fallback page load - no more fallback options")
+
+            # Try to navigate through pages with longer delays
+            page = 0
+            max_pages = 5  # Limit pages in fallback mode
+            
+            while page < max_pages:
+                try:
+                    if page > 0:
+                        # Construct paginated URL
+                        paginated_url = f"{press_url}?page={page}"
+                        logger.info(f"Loading fallback page {page + 1}: {paginated_url}")
+                        self.driver.get(paginated_url)
+                        time.sleep(8)  # Longer delay between pages
+                        
+                        # Check for rate limiting on each fallback page
+                        if self._check_rate_limited(self.driver.page_source):
+                            raise Exception(f"Rate limit detected on SEC fallback page {page + 1} - stopping")
+
+                    # Parse the page with more conservative approach
+                    soup = self._parse_html(self.driver.page_source)
+                    
+                    # Look for any press release links or content
+                    press_release_rows = (
+                        soup.find_all("tr", class_="pr-list-page-row") or
+                        soup.find_all("div", class_="view-content") or
+                        soup.find_all("article")
+                    )
+
+                    if not press_release_rows:
+                        logger.info(f"No press release content found on fallback page {page + 1}")
+                        break
+
+                    page_articles = []
+                    for row in press_release_rows:
+                        try:
+                            article = self._extract_article_from_row(
+                                row, start_date, end_date
+                            )
+                            if article:
+                                # Additional date filtering for fallback method
+                                article_date = article.get('published_date')
+                                if article_date and start_date <= article_date <= end_date:
+                                    page_articles.append(article)
+                        except Exception as e:
+                            logger.debug(f"Error processing fallback row: {e}")
+                            continue
+
+                    articles.extend(page_articles)
+                    logger.info(f"Fallback method found {len(page_articles)} articles on page {page + 1}")
+                    
+                    page += 1
+                    
+                    # Extra delay between pages in fallback mode
+                    if page < max_pages:
+                        time.sleep(5)
+
+                except Exception as e:
+                    logger.warning(f"Error on fallback page {page + 1}: {e}")
+                    break
+
+            logger.info(f"Fallback method completed with {len(articles)} articles for {year}-{month:02d}")
+            return articles
+
+        except Exception as e:
+            logger.error(f"Fallback method failed for SEC {year}-{month:02d}: {e}")
+            raise e
+
     def _scrape_direct_url(
         self, year, month, start_date, end_date, progress_callback=None
     ):
