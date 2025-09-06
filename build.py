@@ -217,11 +217,18 @@ def build_app():
             sys.executable, '-m', 'PyInstaller',
             'standalone_app_new.py',
             '--name', 'BlogsAI',
-            '--onedir',  # Force onedir mode for all platforms
             '--clean',
             '--noconfirm',
             '--noconsole',
         ]
+        
+        # Use different modes for different platforms
+        if platform.system().lower() == 'windows':
+            cmd.append('--onefile')  # Windows: use onefile for simpler distribution
+            print("Using --onefile mode for Windows")
+        else:
+            cmd.append('--onedir')   # macOS/Linux: use onedir for better performance
+            print("Using --onedir mode for macOS/Linux")
         
         # Add Windows-specific DLL handling options
         if platform.system().lower() == 'windows':
@@ -334,7 +341,20 @@ def create_windows_distribution():
     """Create Windows distribution package."""
     print("Creating Windows distribution...")
     
-    # With --onedir mode, we always have a directory
+    # Check for onefile executable first (Windows)
+    exe_path = Path('dist/BlogsAI.exe')
+    if exe_path.exists():
+        # We have onefile mode - zip the executable
+        zip_path = Path('dist/BlogsAI-Windows.zip')
+        
+        import zipfile
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            zipf.write(exe_path, 'BlogsAI.exe')
+        
+        print(f"Created Windows distribution: {zip_path}")
+        return True
+    
+    # Fallback: check for onedir mode
     dir_path = Path('dist/BlogsAI')
     if dir_path.exists():
         # We have onedir mode - zip the directory
@@ -350,7 +370,7 @@ def create_windows_distribution():
         print(f"Created Windows distribution: {zip_path}")
         return True
     
-    print("ERROR: No built directory found")
+    print("ERROR: No built executable or directory found")
     return False
 
 def create_macos_distribution():
