@@ -223,6 +223,55 @@ def build_app():
             '--noconsole',
         ]
         
+        # Add Windows-specific DLL handling options
+        if platform.system().lower() == 'windows':
+            cmd.extend([
+                '--noupx',              # Disable UPX compression (causes DLL issues)
+                '--target-arch=x86_64', # Explicit 64-bit targeting
+            ])
+            
+            # Only collect essential DLL packages (reduced from full --collect-all)
+            cmd.extend([
+                '--collect-binaries', 'cryptography',   # Only binaries, not all files
+                '--collect-binaries', 'keyring',        # Only binaries, not all files
+                '--hidden-import', 'PyQt5.sip',        # Essential PyQt5 import
+            ])
+            
+            # Add specific Windows runtime DLL handling (only essential DLLs)
+            python_dir = os.path.dirname(sys.executable)
+            python_dll = os.path.join(python_dir, 'python311.dll')
+            
+            # Explicitly include Python DLL if it exists
+            if os.path.exists(python_dll):
+                cmd.extend(['--add-binary', f'{python_dll};.'])
+                print(f"Adding Python DLL: {python_dll}")
+            
+            # Only include the most critical Windows runtime DLLs
+            critical_dlls = ['vcruntime140.dll']  # Reduced list
+            for dll_name in critical_dlls:
+                dll_path = os.path.join(python_dir, dll_name)
+                if os.path.exists(dll_path):
+                    cmd.extend(['--add-binary', f'{dll_path};.'])
+                    print(f"Adding critical DLL: {dll_name}")
+            
+            # Add Qt optimization for Windows to reduce size
+            cmd.extend([
+                '--exclude-module', 'PyQt5.QtTest',        # Testing framework
+                '--exclude-module', 'PyQt5.QtDesigner',    # Designer tools
+                '--exclude-module', 'PyQt5.QtHelp',        # Help system
+                '--exclude-module', 'PyQt5.QtMultimedia',  # Multimedia
+                '--exclude-module', 'PyQt5.QtNetwork',     # Network (if not needed)
+                '--exclude-module', 'PyQt5.QtOpenGL',      # OpenGL
+                '--exclude-module', 'PyQt5.QtSql',         # SQL widgets
+                '--exclude-module', 'PyQt5.QtSvg',         # SVG support
+                '--exclude-module', 'PyQt5.QtWebKit',      # WebKit
+                '--exclude-module', 'PyQt5.QtWebKitWidgets', # WebKit widgets
+                '--exclude-module', 'PyQt5.QtXml',         # XML processing
+            ])
+            
+            print("Added optimized Windows DLL handling (reduced size)")
+            print("Added Qt module exclusions for size optimization")
+        
         # Add data files using --add-data command line options
         data_mappings = get_data_mappings()
         for source, dest in data_mappings:
@@ -233,6 +282,32 @@ def build_app():
         hidden_imports = get_hidden_imports()
         for import_name in hidden_imports:
             cmd.extend(['--hidden-import', import_name])
+        
+        # Add Windows-specific excludes to reduce size and avoid DLL conflicts
+        if platform.system().lower() == 'windows':
+            windows_excludes = [
+                # Core modules that cause issues
+                '_decimal', '_multiprocessing', 'multiprocessing.dummy',
+                # GUI frameworks
+                'tkinter', 'turtle', 'curses',
+                # Large scientific libraries
+                'numpy', 'scipy', 'matplotlib', 'pandas',
+                # Development tools
+                'unittest', 'doctest', 'pdb', 'profile', 'cProfile',
+                # Build tools
+                'distutils', 'setuptools', 'pip', 'ensurepip',
+                # Unused multimedia
+                'audioop', 'wave', 'chunk', 'sunau', 'aifc',
+                # Alternative packaging
+                'cx_Freeze', 'nuitka', 'py2exe',
+                # Test frameworks
+                'pytest', 'nose', 'mock',
+                # Documentation
+                'sphinx', 'docutils',
+            ]
+            for exclude in windows_excludes:
+                cmd.extend(['--exclude-module', exclude])
+            print(f"Added {len(windows_excludes)} Windows module excludes for size optimization")
         
         # Add runtime hooks
         cmd.extend(['--runtime-hook', 'hooks/runtime_distribution.py'])
