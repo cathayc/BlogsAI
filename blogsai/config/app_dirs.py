@@ -379,12 +379,42 @@ class AppDirectories:
                 self.prompts_dir.exists() and not any(self.prompts_dir.iterdir())
             )  # Empty directory
         )
+        
+        # Debug information for Windows troubleshooting
+        if sys.platform.startswith('win'):
+            print(f"Windows debug - Bundled prompts path: {bundled_prompts}")
+            print(f"Windows debug - Bundled prompts exists: {bundled_prompts.exists()}")
+            if bundled_prompts.exists():
+                try:
+                    prompt_files = list(bundled_prompts.glob('*.txt'))
+                    print(f"Windows debug - Found {len(prompt_files)} prompt files in bundle: {[f.name for f in prompt_files]}")
+                except Exception as e:
+                    print(f"Windows debug - Error listing bundled prompt files: {e}")
+            print(f"Windows debug - Target prompts dir: {self.prompts_dir}")
+            print(f"Windows debug - Prompts need copy: {prompts_need_copy}")
 
         if bundled_prompts.exists() and prompts_need_copy:
             if self.prompts_dir.exists():
                 shutil.rmtree(self.prompts_dir)
-            shutil.copytree(bundled_prompts, self.prompts_dir)
-            print(f"Copied prompts: {bundled_prompts} → {self.prompts_dir}")
+            
+            # Use more robust copying for Windows onefile mode
+            if sys.platform.startswith('win') and hasattr(sys, '_MEIPASS'):
+                # Windows PyInstaller onefile mode - copy files individually
+                self.prompts_dir.mkdir(parents=True, exist_ok=True)
+                copied_count = 0
+                for prompt_file in bundled_prompts.glob('*.txt'):
+                    try:
+                        dest_file = self.prompts_dir / prompt_file.name
+                        shutil.copy2(prompt_file, dest_file)
+                        copied_count += 1
+                        print(f"Copied prompt file: {prompt_file.name}")
+                    except Exception as e:
+                        print(f"Failed to copy {prompt_file.name}: {e}")
+                print(f"Copied {copied_count} prompt files individually to: {self.prompts_dir}")
+            else:
+                # Use normal copytree for other platforms
+                shutil.copytree(bundled_prompts, self.prompts_dir)
+                print(f"Copied prompts directory: {bundled_prompts} → {self.prompts_dir}")
 
     def _create_minimal_config(self):
         """Create minimal default configuration when bundled config is not available."""
