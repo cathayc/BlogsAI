@@ -35,8 +35,11 @@ if BuildPath('blogsai/config/defaults').exists():
         prompt_files = list(prompts_dir.glob('*.txt'))
         print(f"PyInstaller: Found {len(prompt_files)} prompt files in {prompts_dir}")
         for prompt_file in prompt_files:
-            print(f"PyInstaller: Adding prompt file: {prompt_file} -> _internal/defaults/prompts/{prompt_file.name}")
-            data_dirs.append((str(prompt_file), f'_internal/defaults/prompts/{prompt_file.name}'))
+            # Fix: Use relative path from project root to avoid Windows path issues
+            relative_source = f'blogsai/config/defaults/prompts/{prompt_file.name}'
+            destination = f'_internal/defaults/prompts/{prompt_file.name}'
+            print(f"PyInstaller: Adding prompt file: {relative_source} -> {destination}")
+            data_dirs.append((relative_source, destination))
     else:
         print(f"PyInstaller: WARNING - Prompts directory not found: blogsai/config/defaults/prompts")
 

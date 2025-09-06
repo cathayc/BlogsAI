@@ -158,7 +158,7 @@ def main():
         print(f"ERROR: {spec_file} file not found!")
         sys.exit(1)
     
-    print(f"Using platform-specific PyInstaller spec file: {spec_file}")
+    print(f"Running PyInstaller with {spec_file}...")
     
     # Step 5: Build application
     if not build_app(spec_file):
